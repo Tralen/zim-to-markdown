@@ -29,20 +29,21 @@ data LinkContext = LinkContext
     }
     deriving (Eq, Show)
 
--- | Converts the inner text of a Zim link into a Markdown link.
-renderZimLink :: LinkContext -> Text -> Text
-renderZimLink context rawInner =
+-- | Converts the inner text of a Zim link into a Markdown link. The label
+-- renderer converts inline markup inside an explicit link label.
+renderZimLink :: LinkContext -> (Text -> Text) -> Text -> Text
+renderZimLink context renderLabel rawInner =
     let inner = Text.strip rawInner
     in if Text.null inner
         then ""
         else
             let (target, label) = splitLink inner
             in if Text.null target
-                then escapeLabel (maybe "" id label)
+                then escapeLabel (maybe "" renderLabel label)
                 else
                     if isExternalTarget target
-                        then renderExternal target label
-                        else renderInternal context target label
+                        then renderExternal renderLabel target label
+                        else renderInternal context renderLabel target label
 
 -- | Tests whether a link target points outside the notebook.
 isExternalTarget :: Text -> Bool
@@ -61,21 +62,21 @@ splitLink inner =
             else Just (Text.strip (Text.drop 1 labelWithPipe))
        )
 
-renderExternal :: Text -> Maybe Text -> Text
-renderExternal target label =
+renderExternal :: (Text -> Text) -> Text -> Maybe Text -> Text
+renderExternal renderLabel target label =
     "["
-        <> escapeLabel (maybe target id label)
+        <> escapeLabel (maybe target renderLabel label)
         <> "]("
         <> renderMarkdownPath target
         <> ")"
 
-renderInternal :: LinkContext -> Text -> Maybe Text -> Text
-renderInternal context target label =
+renderInternal :: LinkContext -> (Text -> Text) -> Text -> Maybe Text -> Text
+renderInternal context renderLabel target label =
     let (pathPart, anchor) = Text.breakOn "#" target
         cleanTarget = Text.strip pathPart
         display =
             case label of
-                Just value -> value
+                Just value -> renderLabel value
                 Nothing -> stripLinkPrefix target
     in if Text.null cleanTarget
         then escapeLabel display

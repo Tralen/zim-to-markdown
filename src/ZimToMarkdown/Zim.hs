@@ -16,6 +16,11 @@ import ZimToMarkdown.Inline
     , renderMarkdownPath
     )
 import ZimToMarkdown.Links (LinkContext, renderZimLink)
+import ZimToMarkdown.Table
+    ( isTableStart
+    , normalizeTable
+    , takeTableBlock
+    )
 
 -- | Converts a Zim page into Markdown.
 convertZimToMarkdown :: LinkContext -> ZimPage -> MarkdownDocument
@@ -44,6 +49,9 @@ renderBlocks context = go OutsideVerbatim
             "```" : go (toggle state) rest
         | state == InsideVerbatim =
             line : go InsideVerbatim rest
+        | isTableStart line =
+            let (block, remaining) = takeTableBlock (line : rest)
+            in normalizeTable block <> go OutsideVerbatim remaining
         | otherwise =
             renderLine context line : go OutsideVerbatim rest
 
@@ -58,18 +66,34 @@ renderLine context line
     | Text.null (Text.strip line) = line
     | Just (level, content) <- parseHeading line =
         Text.replicate level "#" <> " " <> convertInline context content
+    | isHorizontalRule line = "---"
     | Just listLine <- parseListLine line =
         renderListLine context listLine
+    | Just (depth, content) <- parseIndentedBlock line =
+        Text.replicate depth "> " <> renderLine context content
     | otherwise = convertInline context line
+
+isHorizontalRule :: Text -> Bool
+isHorizontalRule line =
+    let trimmed = Text.strip line
+    in Text.length trimmed >= 5 && Text.all (== '-') trimmed
+
+parseIndentedBlock :: Text -> Maybe (Int, Text)
+parseIndentedBlock line =
+    let (tabs, afterTabs) = Text.span (== '\t') line
+        (spaces, rest) = Text.span (== ' ') afterTabs
+        depth = Text.length tabs + Text.length spaces `div` 4
+    in if depth == 0
+        then Nothing
+        else Just (depth, rest)
 
 parseHeading :: Text -> Maybe (Int, Text)
 parseHeading line =
-    let stripped = Text.strip line
-        opening = Text.takeWhile (== '=') stripped
+    let opening = Text.takeWhile (== '=') line
         count = Text.length opening
     in if count >= 2 && count <= 6
         then
-            let afterOpening = Text.drop count stripped
+            let afterOpening = Text.drop count line
                 closing = Text.takeWhileEnd (== '=') afterOpening
                 content =
                     Text.strip
@@ -113,6 +137,8 @@ parseMarker text
     | Just rest <- Text.stripPrefix "[*] " text = Just (Task True, rest)
     | Just rest <- Text.stripPrefix "[x] " text = Just (Task True, rest)
     | Just rest <- Text.stripPrefix "[X] " text = Just (Task True, rest)
+    | Just rest <- Text.stripPrefix "[>] " text = Just (Task True, rest)
+    | Just rest <- Text.stripPrefix "[<] " text = Just (Task True, rest)
     | Just rest <- Text.stripPrefix "* " text = Just (Bullet, rest)
     | Just rest <- Text.stripPrefix "- " text = Just (Bullet, rest)
     | otherwise = parseOrdered text
@@ -161,7 +187,21 @@ indentToSpaces =
 
 inlineMarkers :: [Text]
 inlineMarkers =
-    ["**", "//", "__", "''", "~~", "[[", "{{", "_{", "^{"]
+    [ "<strong>"
+    , "<b>"
+    , "<em>"
+    , "<i>"
+    , "{{id:"
+    , "**"
+    , "//"
+    , "__"
+    , "''"
+    , "~~"
+    , "[["
+    , "{{"
+    , "_{"
+    , "^{"
+    ]
 
 convertInline :: LinkContext -> Text -> Text
 convertInline context = go
@@ -174,6 +214,20 @@ convertInline context = go
                 Just suffix -> convertMarker plain suffix
 
     convertMarker preceding text
+        | Just result <-
+            enclosed "<strong>" "</strong>" (\inner -> "**" <> go inner <> "**") text =
+            keep result
+        | Just result <-
+            enclosed "<b>" "</b>" (\inner -> "**" <> go inner <> "**") text =
+            keep result
+        | Just result <-
+            enclosed "<em>" "</em>" (\inner -> "*" <> go inner <> "*") text =
+            keep result
+        | Just result <-
+            enclosed "<i>" "</i>" (\inner -> "*" <> go inner <> "*") text =
+            keep result
+        | Just result <- enclosed "{{id:" "}}" renderAnchor text =
+            keep result
         | Just result <-
             enclosed "**" "**" (\inner -> "**" <> go inner <> "**") text =
             keep result
@@ -190,7 +244,11 @@ convertInline context = go
             enclosed "~~" "~~" (\inner -> "~~" <> go inner <> "~~") text =
             keep result
         | Just result <-
-            enclosed "[[" "]]" (renderZimLink context) text =
+            enclosed
+                "[["
+                "]]"
+                (renderZimLink context (convertInline context))
+                text =
             keep result
         | Just result <- enclosed "{{" "}}" renderImage text =
             keep result
@@ -204,19 +262,29 @@ convertInline context = go
 
     keep (rendered, after) = rendered <> go after
 
+renderAnchor :: Text -> Text
+renderAnchor inner =
+    let name = Text.strip inner
+    in if Text.null name
+        then "{{id:}}"
+        else
+            "<a id=\""
+                <> Text.replace "\"" "&quot;" name
+                <> "\"></a>"
+
 renderImage :: Text -> Text
 renderImage inner =
-    let path = Text.strip (fst (Text.breakOn "|" inner))
+    let (pathPart, altPart) = Text.breakOn "|" inner
+        path = Text.strip pathPart
+        altText =
+            if Text.null altPart
+                then Text.pack (takeBaseName (Text.unpack path))
+                else Text.strip (Text.drop 1 altPart)
     in if Text.null path
         then "{{" <> inner <> "}}"
         else
-            let altText =
-                    Text.replace
-                        "]"
-                        "\\]"
-                        (Text.pack (takeBaseName (Text.unpack path)))
-            in "!["
-                <> altText
+            "!["
+                <> Text.replace "]" "\\]" altText
                 <> "]("
                 <> renderMarkdownPath path
                 <> ")"

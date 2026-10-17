@@ -112,6 +112,10 @@ tests =
         (zimToMarkdown "[[sibling]]")
         "[sibling](sibling.md)"
     , TestCase
+        "zim link label markup"
+        (zimToMarkdown "[[sibling|**bold**]]")
+        "[**bold**](sibling.md)"
+    , TestCase
         "zim root link"
         (zimToMarkdown "[[:root]]")
         "[root](../root.md)"
@@ -127,6 +131,46 @@ tests =
         "zim image"
         (zimToMarkdown "{{./pic.png}}")
         "![pic](./pic.png)"
+    , TestCase
+        "zim image with alt text"
+        (zimToMarkdown "{{./pic.png|A picture}}")
+        "![A picture](./pic.png)"
+    , TestCase
+        "zim anchor"
+        (zimToMarkdown "{{id: intro}}")
+        "<a id=\"intro\"></a>"
+    , TestCase
+        "zim html bold"
+        (zimToMarkdown "<b>bold</b>")
+        "**bold**"
+    , TestCase
+        "zim html italic"
+        (zimToMarkdown "<i>italic</i>")
+        "*italic*"
+    , TestCase
+        "zim migrated task"
+        (zimToMarkdown "[>] done")
+        "- [x] done"
+    , TestCase
+        "zim horizontal rule"
+        (zimToMarkdown "-----")
+        "---"
+    , TestCase
+        "zim indented block"
+        (zimToMarkdown "\tquoted")
+        "> quoted"
+    , TestCase
+        "zim nested indented block"
+        (zimToMarkdown "\t\tdeep")
+        "> > deep"
+    , TestCase
+        "zim table with alignment"
+        (zimToMarkdown (Text.unlines ["| Name | Age |", "|:-----|----:|", "| Ana | 30 |"]))
+        (Text.unlines ["| Name | Age |", "| :--- | ---: |", "| Ana | 30 |"])
+    , TestCase
+        "zim table without alignment"
+        (zimToMarkdown (Text.unlines ["| A | B |", "| 1 | 2 |"]))
+        (Text.unlines ["| A | B |", "| --- | --- |", "| 1 | 2 |"])
     , TestCase
         "zim verbatim block"
         (zimToMarkdown (Text.unlines ["'''", "x = 1", "'''"]))
@@ -168,6 +212,10 @@ tests =
         (markdownToZim "[label](page.md)")
         "[[page|label]]"
     , TestCase
+        "markdown link label markup"
+        (markdownToZim "[**bold**](page.md)")
+        "[[page|**bold**]]"
+    , TestCase
         "markdown self labelled link"
         (markdownToZim "[page](page.md)")
         "[[page]]"
@@ -178,7 +226,59 @@ tests =
     , TestCase
         "markdown image"
         (markdownToZim "![alt](pic.png)")
-        "{{pic.png}}"
+        "{{pic.png|alt}}"
+    , TestCase
+        "markdown image with alt text"
+        (markdownToZim "![A picture](pic.png)")
+        "{{pic.png|A picture}}"
+    , TestCase
+        "markdown anchor"
+        (markdownToZim "<a id=\"intro\"></a>")
+        "{{id: intro}}"
+    , TestCase
+        "markdown html strong"
+        (markdownToZim "<strong>bold</strong>")
+        "**bold**"
+    , TestCase
+        "markdown html emphasis"
+        (markdownToZim "<em>italic</em>")
+        "//italic//"
+    , TestCase
+        "markdown html mark"
+        (markdownToZim "<mark>marked</mark>")
+        "__marked__"
+    , TestCase
+        "markdown autolink"
+        (markdownToZim "<https://example.com>")
+        "[[https://example.com]]"
+    , TestCase
+        "markdown thematic break"
+        (markdownToZim "---")
+        "-----"
+    , TestCase
+        "markdown blockquote"
+        (markdownToZim "> quoted")
+        "\tquoted"
+    , TestCase
+        "markdown nested blockquote"
+        (markdownToZim "> > deep")
+        "\t\tdeep"
+    , TestCase
+        "markdown list in blockquote"
+        (markdownToZim "> - item")
+        "\t* item"
+    , TestCase
+        "markdown setext heading level 1"
+        (markdownToZim "Title\n=====")
+        "====== Title ======"
+    , TestCase
+        "markdown setext heading level 2"
+        (markdownToZim "Title\n-----")
+        "===== Title ====="
+    , TestCase
+        "markdown table"
+        (markdownToZim (Text.unlines ["| Name | Age |", "|:-----|----:|", "| Ana | 30 |"]))
+        (Text.unlines ["| Name | Age |", "| :--- | ---: |", "| Ana | 30 |"])
     , TestCase
         "markdown bullet list"
         (markdownToZim "- item")

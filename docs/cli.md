@@ -19,8 +19,7 @@ zim-to-markdown --version
 
 ## Single pages
 
-When `INPUT` is a file, the result goes to standard output unless `--output`
-is given. In that case `PATH` must be a file path.
+When `INPUT` is a file, the result goes to standard output unless `--output` is given. In that case `PATH` must be a file path.
 
 ```sh
 cabal run zim-to-markdown -- page.txt
@@ -30,12 +29,11 @@ cabal run zim-to-markdown -- --direction markdown-to-zim page.md --output page.t
 
 ## Notebooks
 
-When `INPUT` is a directory, it is treated as a notebook and `--output` is
-required. The whole tree is converted recursively:
+When `INPUT` is a directory, it is treated as a notebook. A file named `notebook.zim` is also accepted; its parent directory becomes the notebook root. In both cases `--output` is required and the whole tree is converted recursively:
 
-- Page files are converted to the target extension (`.txt` to `.md`, or
-  `.md` and `.markdown` to `.txt`).
+- Page files are converted to the target extension (`.txt` to `.md`, or `.md` and `.markdown` to `.txt`).
 - Other files are copied unchanged, preserving their relative paths.
+- The root `notebook.zim` file is treated as metadata and is not copied.
 - Internal links are resolved using every page found in the notebook.
 - Hidden files and symbolic links are skipped.
 - Empty directories are not recreated.
@@ -43,10 +41,10 @@ required. The whole tree is converted recursively:
 
 ```sh
 cabal run zim-to-markdown -- my-notebook --output my-notebook-markdown
+cabal run zim-to-markdown -- my-notebook/notebook.zim --output my-notebook-markdown
 cabal run zim-to-markdown -- --direction markdown-to-zim notes --output notes-zim
 ```
 
 ## Exit status
 
-The process exits with `0` on success and with a non-zero status when the
-arguments are invalid or when an input or output operation fails.
+The process exits with `0` on success and with a non-zero status when the arguments are invalid or when an input or output operation fails.

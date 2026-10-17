@@ -4,6 +4,7 @@ module ZimToMarkdown.Markdown
 
 import Control.Applicative ((<|>))
 import Data.Char (isDigit)
+import Data.Maybe (isNothing)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import System.FilePath
@@ -22,6 +23,11 @@ import ZimToMarkdown.Inline
     , italicBoundary
     )
 import ZimToMarkdown.Links (isExternalTarget)
+import ZimToMarkdown.Table
+    ( isTableStart
+    , normalizeTable
+    , takeTableBlock
+    )
 
 -- | Converts a Markdown document into a Zim page.
 convertMarkdownToZim :: MarkdownDocument -> ZimPage
@@ -50,11 +56,46 @@ renderBlocks = go Nothing
             "'''" : go Nothing rest
         | otherwise =
             line : go (Just fence) rest
+    go Nothing (line : underline : rest)
+        | Just level <- setextLevel underline
+        , isParagraphLine line =
+            let zimLevel = min level 5
+                marker = Text.replicate (7 - zimLevel) "="
+            in ( marker
+                    <> " "
+                    <> convertInline (Text.strip line)
+                    <> " "
+                    <> marker
+               )
+                : go Nothing rest
     go Nothing (line : rest)
         | Just fence <- openingFence line =
             "'''" : go (Just fence) rest
+        | isTableStart line =
+            let (block, remaining) = takeTableBlock (line : rest)
+            in normalizeTable block <> go Nothing remaining
         | otherwise =
             renderLine line : go Nothing rest
+
+setextLevel :: Text -> Maybe Int
+setextLevel line =
+    let trimmed = Text.strip line
+    in if not (Text.null trimmed) && Text.all (== '=') trimmed
+        then Just 1
+        else
+            if not (Text.null trimmed) && Text.all (== '-') trimmed
+                then Just 2
+                else Nothing
+
+isParagraphLine :: Text -> Bool
+isParagraphLine line =
+    not (Text.null (Text.strip line))
+        && isNothing (parseHeading line)
+        && isNothing (parseListLine line)
+        && isNothing (parseBlockquote line)
+        && isNothing (openingFence line)
+        && not (isTableStart line)
+        && not (isThematicBreak line)
 
 openingFence :: Text -> Maybe Fence
 openingFence line =
@@ -80,6 +121,9 @@ isClosingFence fence line =
 
 renderLine :: Text -> Text
 renderLine line
+    | isThematicBreak line = "-----"
+    | Just (depth, content) <- parseBlockquote line =
+        Text.replicate depth "\t" <> renderLine content
     | Just (level, content) <- parseHeading line =
         let zimLevel = min level 5
             marker = Text.replicate (7 - zimLevel) "="
@@ -87,6 +131,27 @@ renderLine line
     | Just listLine <- parseListLine line =
         renderListLine listLine
     | otherwise = convertInline line
+
+isThematicBreak :: Text -> Bool
+isThematicBreak line =
+    let stripped = Text.filter (/= ' ') (Text.strip line)
+    in Text.length stripped >= 3
+        && Text.all (== Text.head stripped) stripped
+        && Text.head stripped `elem` ['-', '*', '_']
+
+parseBlockquote :: Text -> Maybe (Int, Text)
+parseBlockquote line =
+    let (depth, content) = countQuotes 0 (Text.stripStart line)
+    in if depth == 0
+        then Nothing
+        else Just (depth, content)
+  where
+    countQuotes depth text =
+        case Text.stripPrefix ">" text of
+            Nothing -> (depth, text)
+            Just after ->
+                let rest = Text.dropWhile (== ' ') after
+                in countQuotes (depth + 1) rest
 
 parseHeading :: Text -> Maybe (Int, Text)
 parseHeading line =
@@ -198,7 +263,25 @@ indentToTabs indent =
 
 inlineMarkers :: [Text]
 inlineMarkers =
-    ["![", "[", "<u>", "<sub>", "<sup>", "**", "__", "~~", "`", "*", "_"]
+    [ "!["
+    , "["
+    , "<a "
+    , "<strong>"
+    , "<b>"
+    , "<em>"
+    , "<i>"
+    , "<mark>"
+    , "<u>"
+    , "<sub>"
+    , "<sup>"
+    , "<"
+    , "**"
+    , "__"
+    , "~~"
+    , "`"
+    , "*"
+    , "_"
+    ]
 
 convertInline :: Text -> Text
 convertInline = go
@@ -213,6 +296,22 @@ convertInline = go
     convertMarker preceding text
         | Just result <- convertImage text = keep result
         | Just result <- convertLink text = keep result
+        | Just result <- convertAnchor text = keep result
+        | Just result <-
+            enclosed "<strong>" "</strong>" (\inner -> "**" <> go inner <> "**") text =
+            keep result
+        | Just result <-
+            enclosed "<b>" "</b>" (\inner -> "**" <> go inner <> "**") text =
+            keep result
+        | Just result <-
+            enclosed "<em>" "</em>" (\inner -> "//" <> go inner <> "//") text =
+            keep result
+        | Just result <-
+            enclosed "<i>" "</i>" (\inner -> "//" <> go inner <> "//") text =
+            keep result
+        | Just result <-
+            enclosed "<mark>" "</mark>" (\inner -> "__" <> go inner <> "__") text =
+            keep result
         | Just result <-
             enclosed "<u>" "</u>" (\inner -> "__" <> go inner <> "__") text =
             keep result
@@ -222,6 +321,7 @@ convertInline = go
         | Just result <-
             enclosed "<sup>" "</sup>" (\inner -> "^{" <> go inner <> "}") text =
             keep result
+        | Just result <- convertAutolink text = keep result
         | Just result <-
             enclosed "**" "**" (\inner -> "**" <> go inner <> "**") text =
             keep result
@@ -247,20 +347,47 @@ convertInline = go
 convertImage :: Text -> Maybe (Text, Text)
 convertImage text = do
     rest <- Text.stripPrefix "![" text
-    let (_, afterAlt) = Text.breakOn "](" rest
+    let (alt, afterAlt) = Text.breakOn "](" rest
     afterOpen <- Text.stripPrefix "](" afterAlt
     let (target, afterTarget) = Text.breakOn ")" afterOpen
     if Text.null afterTarget
         then Nothing
         else
             let path = Text.strip target
+                display = Text.strip alt
             in if Text.null path
                 then Nothing
                 else
-                    Just
-                        ( "{{" <> path <> "}}"
-                        , Text.drop 1 afterTarget
-                        )
+                    let rendered =
+                            "{{"
+                                <> path
+                                <> ( if Text.null display
+                                        then ""
+                                        else "|" <> display
+                                   )
+                                <> "}}"
+                    in Just (rendered, Text.drop 1 afterTarget)
+
+convertAnchor :: Text -> Maybe (Text, Text)
+convertAnchor text = do
+    rest <- Text.stripPrefix "<a id=\"" text
+    let (name, afterName) = Text.breakOn "\"" rest
+    afterClose <- Text.stripPrefix "\"></a>" afterName
+    if Text.null name
+        then Nothing
+        else Just ("{{id: " <> name <> "}}", afterClose)
+
+convertAutolink :: Text -> Maybe (Text, Text)
+convertAutolink text = do
+    rest <- Text.stripPrefix "<" text
+    let (inner, after) = Text.breakOn ">" rest
+    if Text.null after
+        then Nothing
+        else
+            let target = Text.strip inner
+            in if isExternalTarget target
+                then Just ("[[" <> target <> "]]", Text.drop 1 after)
+                else Nothing
 
 convertLink :: Text -> Maybe (Text, Text)
 convertLink text = do
@@ -271,7 +398,7 @@ convertLink text = do
     if Text.null afterTarget
         then Nothing
         else
-            let display = Text.strip label
+            let display = convertInline (Text.strip label)
                 zimTarget = markdownTarget (Text.strip target)
             in if Text.null zimTarget
                 then Nothing

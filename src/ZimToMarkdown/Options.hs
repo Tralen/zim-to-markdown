@@ -151,7 +151,7 @@ helpText =
         , "  -h, --help                 Show this help."
         , "  -V, --version              Show the application version."
         , ""
-        , "A notebook is a directory. Its page files are converted and its other"
-        , "files are copied, preserving the folder structure. Hidden files and"
-        , "symbolic links are skipped."
+        , "A notebook is a directory, or a path to its notebook.zim file. Its"
+        , "page files are converted and its other files are copied, preserving"
+        , "the folder structure. Hidden files and symbolic links are skipped."
         ]

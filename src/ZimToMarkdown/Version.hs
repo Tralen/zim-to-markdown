@@ -22,7 +22,7 @@ appVersion :: Version
 appVersion =
     Version
         { versionMajor = 0
-        , versionMinor = 2
+        , versionMinor = 3
         , versionPatch = 0
         , versionRevision = 0
         }

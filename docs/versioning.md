@@ -1,7 +1,6 @@
 # Versioning
 
-The project follows the Package Version Policy with four components:
-`major.minor.patch.revision`. The current version is `0.2.0.0`.
+The project follows the Package Version Policy with four components: `major.minor.patch.revision`. The current version is `0.3.0.0`.
 
 ## Source of truth
 
@@ -19,5 +18,4 @@ The version is stored in two places and they must stay in sync:
 | Data model breaking changes | Major component 2 |
 | Major release milestones | Major component 1 |
 
-Every commit message starts with the application version and mentions the
-version bump in its summary.
+Every commit message starts with the application version and mentions the version bump in its summary.

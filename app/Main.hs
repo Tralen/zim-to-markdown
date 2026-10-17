@@ -71,13 +71,19 @@ runConversion request = do
     inputIsDirectory <- doesDirectoryExist inputPath
     inputIsFile <- doesFileExist inputPath
     if inputIsDirectory
-        then runNotebook request
+        then runNotebookRoot request inputPath
         else
             if inputIsFile
-                then runSingleFile request inputPath
+                then
+                    if isNotebookDefinition inputPath
+                        then runNotebookRoot request (takeDirectory inputPath)
+                        else runSingleFile request inputPath
                 else
                     failWith
                         ("Input path does not exist: " <> Text.pack inputPath)
+
+isNotebookDefinition :: FilePath -> Bool
+isNotebookDefinition path = takeFileName path == "notebook.zim"
 
 runSingleFile :: ConversionRequest -> FilePath -> IO ()
 runSingleFile request inputPath = do
@@ -105,15 +111,14 @@ runSingleFile request inputPath = do
                             writeUtf8File (unOutputPath outputPath) rendered
                                 >>= either failWith pure
 
-runNotebook :: ConversionRequest -> IO ()
-runNotebook request =
+runNotebookRoot :: ConversionRequest -> FilePath -> IO ()
+runNotebookRoot request inputRoot =
     case conversionOutput request of
         Nothing ->
             failWith
                 "An output directory is required when converting a notebook."
         Just outputPath -> do
-            let inputRoot = unInputPath (conversionInput request)
-                outputRoot = unOutputPath outputPath
+            let outputRoot = unOutputPath outputPath
             inputAbsolute <- makeAbsolute inputRoot
             outputAbsolute <- makeAbsolute outputRoot
             if isStrictlyInside inputAbsolute outputAbsolute
@@ -222,22 +227,29 @@ discoverFiles root = go ""
                             else relativeDirectory </> name
                         )
                 fullPath = root </> relativePath
-            symbolicResult <-
-                try (pathIsSymbolicLink fullPath)
-                    :: IO (Either IOException Bool)
-            case symbolicResult of
-                Left exception ->
-                    pure (Left (renderFileError fullPath exception))
-                Right True -> pure (Right [])
-                Right False -> do
-                    isDirectory <- doesDirectoryExist fullPath
-                    isFile <- doesFileExist fullPath
-                    if isDirectory
-                        then go relativePath
-                        else
-                            if isFile
-                                then pure (Right [RelativePath relativePath])
-                                else pure (Right [])
+            if relativePath == "notebook.zim"
+                then pure (Right [])
+                else do
+                    symbolicResult <-
+                        try (pathIsSymbolicLink fullPath)
+                            :: IO (Either IOException Bool)
+                    case symbolicResult of
+                        Left exception ->
+                            pure (Left (renderFileError fullPath exception))
+                        Right True -> pure (Right [])
+                        Right False -> do
+                            isDirectory <- doesDirectoryExist fullPath
+                            isFile <- doesFileExist fullPath
+                            if isDirectory
+                                then go relativePath
+                                else
+                                    if isFile
+                                        then
+                                            pure
+                                                ( Right
+                                                    [RelativePath relativePath]
+                                                )
+                                        else pure (Right [])
 
     isHidden ('.' : _) = True
     isHidden _ = False

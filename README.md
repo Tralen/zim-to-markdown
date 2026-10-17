@@ -1,16 +1,16 @@
 # zim-to-markdown
 
-Command line converter between Zim wiki pages and Markdown. It handles single
-pages and whole notebooks in both directions.
+Command line converter between Zim wiki pages and Markdown. It handles single pages and whole notebooks in both directions.
 
 ## Features
 
 - Converts a single page to standard output or to a file.
 - Converts a whole notebook recursively, reconstructing its folder structure.
+- Accepts the notebook directory or its `notebook.zim` configuration file as input.
 - Copies notebook assets so images and attachments keep working.
 - Resolves internal Zim links across the notebook.
 - Converts Markdown back to Zim, including notebook structure.
-- Supports an initial set of formatting rules in both directions.
+- Supports headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks.
 - Keeps conversion pure and reports failures as data.
 
 ## Documentation
@@ -53,6 +53,12 @@ Convert a whole Zim notebook, preserving its folders:
 cabal run zim-to-markdown -- my-notebook --output my-notebook-markdown
 ```
 
+The notebook directory or its `notebook.zim` file can be used as input:
+
+```sh
+cabal run zim-to-markdown -- my-notebook/notebook.zim --output my-notebook-markdown
+```
+
 Convert Markdown back to Zim:
 
 ```sh
@@ -63,7 +69,4 @@ Run `cabal run zim-to-markdown -- --help` for the complete option list.
 
 ## Status
 
-The converter covers headings, inline emphasis, lists, task lists, links,
-images, and code blocks. Tables, blockquotes, footnotes, and other advanced
-Markdown features are not converted yet. See
-[conversion rules](docs/conversion.md) for details and known limitations.
+The converter covers headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks. Reference links, footnotes, nested links, raw HTML blocks, and Markdown indented code blocks are not converted yet. See [conversion rules](docs/conversion.md) for details and known limitations.
