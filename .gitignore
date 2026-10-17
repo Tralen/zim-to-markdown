@@ -1,6 +1,8 @@
 # Zed
 .agents/
 .prompt/
+PROMPT.md
+TODO.md
 
 # Cabal
 dist-newstyle/
