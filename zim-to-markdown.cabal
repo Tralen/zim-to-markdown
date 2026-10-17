@@ -1,0 +1,54 @@
+cabal-version:      3.0
+name:               zim-to-markdown
+version:            0.1.0.0
+synopsis:           Converts Zim wiki pages to Markdown.
+description:        A command line converter from Zim wiki markup to Markdown.
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             The zim-to-markdown authors
+maintainer:         The zim-to-markdown authors
+category:           Text
+build-type:         Simple
+extra-doc-files:    README.md
+                    docs/architecture.md
+                    docs/cli.md
+                    docs/domain.md
+                    docs/versioning.md
+
+common warnings
+    ghc-options:
+        -Wall
+        -Wcompat
+        -Widentities
+        -Wincomplete-record-updates
+        -Wincomplete-uni-patterns
+        -Wmissing-export-lists
+        -Wmissing-home-modules
+        -Wpartial-fields
+        -Wredundant-constraints
+
+library
+    exposed-modules:
+        ZimToMarkdown.Converter
+        ZimToMarkdown.Domain
+        ZimToMarkdown.Options
+        ZimToMarkdown.Version
+    hs-source-dirs:   src
+    build-depends:
+        base        >=4.18 && <5,
+        filepath    >=1.4  && <1.6,
+        text        >=2.0  && <2.2
+    default-language: GHC2021
+    default-extensions: OverloadedStrings
+
+executable zim-to-markdown
+    main-is:          Main.hs
+    hs-source-dirs:   app
+    build-depends:
+        base              >=4.18 && <5,
+        bytestring        >=0.11 && <0.13,
+        text              >=2.0  && <2.2,
+        zim-to-markdown
+    default-language: GHC2021
+    default-extensions: OverloadedStrings
+    ghc-options:      -threaded -rtsopts -with-rtsopts=-N

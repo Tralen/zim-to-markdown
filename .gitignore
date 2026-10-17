@@ -1,0 +1,14 @@
+# Zed
+.agents/
+.prompt/
+
+# Cabal
+dist-newstyle/
+cabal.project.local
+cabal.project.local~
+.ghc.environment.*
+
+# GHC
+*.hi
+*.o
+*.hie
