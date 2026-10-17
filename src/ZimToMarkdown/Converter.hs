@@ -1,12 +1,17 @@
 module ZimToMarkdown.Converter
-    ( convertPage
+    ( convertMarkdownDocument
+    , convertZimPage
     ) where
 
-import ZimToMarkdown.Domain (MarkdownDocument (..), ZimPage (..))
+import ZimToMarkdown.Domain (MarkdownDocument, ZimPage)
+import ZimToMarkdown.Links (LinkContext)
+import ZimToMarkdown.Markdown (convertMarkdownToZim)
+import ZimToMarkdown.Zim (convertZimToMarkdown)
 
--- | Converts a Zim page into Markdown.
---
--- The scaffold currently preserves the page content unchanged; markup rules
--- will replace this pass-through implementation incrementally.
-convertPage :: ZimPage -> MarkdownDocument
-convertPage (ZimPage content) = MarkdownDocument content
+-- | Converts a Zim page into a Markdown document.
+convertZimPage :: LinkContext -> ZimPage -> MarkdownDocument
+convertZimPage = convertZimToMarkdown
+
+-- | Converts a Markdown document into a Zim page.
+convertMarkdownDocument :: MarkdownDocument -> ZimPage
+convertMarkdownDocument = convertMarkdownToZim

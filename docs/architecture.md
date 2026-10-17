@@ -7,11 +7,17 @@ live in `app/Main.hs`; the library only transforms immutable values.
 
 | Module | Responsibility |
 | --- | --- |
-| `ZimToMarkdown.Domain` | Domain types: `ZimPage` and `MarkdownDocument`. |
-| `ZimToMarkdown.Converter` | Pure conversion from `ZimPage` to `MarkdownDocument`. |
+| `ZimToMarkdown.Domain` | Core types: directions, documents, and relative paths. |
+| `ZimToMarkdown.Zim` | Pure Zim to Markdown block and inline conversion. |
+| `ZimToMarkdown.Markdown` | Pure Markdown to Zim block and inline conversion. |
+| `ZimToMarkdown.Converter` | Direction specific entry points used by the executable. |
+| `ZimToMarkdown.Links` | Pure resolution of internal Zim links using notebook context. |
+| `ZimToMarkdown.Inline` | Shared inline scanning helpers. |
+| `ZimToMarkdown.Notebook` | Pure classification of notebook files and destination paths. |
+| `ZimToMarkdown.Paths` | Pure relative path calculation. |
 | `ZimToMarkdown.Options` | Pure command line parsing and user facing messages. |
 | `ZimToMarkdown.Version` | Application version and its rendering. |
-| `Main` | Effect boundary: reads arguments and files, writes output, sets the exit code. |
+| `Main` | Effect boundary: filesystem discovery, reading, writing, and exit codes. |
 
 ## Data flow
 
@@ -19,20 +25,35 @@ live in `app/Main.hs`; the library only transforms immutable values.
 argv -> parseOptions -> ConversionRequest
                               |
                               v
-file bytes -> decodeUtf8' -> ZimPage -> convertPage -> MarkdownDocument
+discoverFiles -> classifyNotebookItems -> pages and assets
                               |
                               v
-                encodeUtf8 -> stdout or output file
+file bytes -> decodeUtf8' -> ZimPage or MarkdownDocument
+                              |
+                              v
+convertZimPage or convertMarkdownDocument
+                              |
+                              v
+encodeUtf8 -> stdout or output file
 ```
 
 ## Purity boundary
 
-Parsing, conversion, and rendering are pure functions. Reading, writing, and
-exiting are confined to `Main`, which turns failures into `Text` messages and
-a non-zero exit code instead of throwing exceptions.
+Parsing, conversion, link resolution, path calculation, and notebook
+classification are pure functions. Reading, writing, directory discovery,
+asset copying, and exiting are confined to `Main`, which turns failures into
+`Text` messages and a non-zero exit code instead of throwing exceptions.
+
+## Notebook behavior
+
+For a notebook, the executable first discovers every file and classifies it as
+a page or an asset. Pages are converted to the target extension and assets are
+copied unchanged. Internal links are resolved against the set of discovered
+pages, so links keep pointing to the converted pages. Hidden files, symbolic
+links, and empty directories are skipped.
 
 ## Evolution
 
-New Zim markup rules belong in `ZimToMarkdown.Converter`. New command line
-options belong in `ZimToMarkdown.Options`. Shared behavior should be extracted
-into a reusable module rather than duplicated between call sites.
+New markup rules belong in `ZimToMarkdown.Zim` or `ZimToMarkdown.Markdown`.
+Shared syntax helpers belong in `ZimToMarkdown.Inline`. Path and link behavior
+must remain pure and free of filesystem access.

@@ -13,13 +13,15 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import System.FilePath (FilePath)
 
--- | Path of the Zim page to read.
+import ZimToMarkdown.Domain (ConversionDirection (..))
+
+-- | Path of the Zim page or notebook to read.
 newtype InputPath = InputPath
     { unInputPath :: FilePath
     }
     deriving (Eq, Show)
 
--- | Path where the Markdown document is written.
+-- | Path where the Markdown document or notebook is written.
 newtype OutputPath = OutputPath
     { unOutputPath :: FilePath
     }
@@ -29,6 +31,7 @@ newtype OutputPath = OutputPath
 data ConversionRequest = ConversionRequest
     { conversionInput :: InputPath
     , conversionOutput :: Maybe OutputPath
+    , conversionDirection :: ConversionDirection
     }
     deriving (Eq, Show)
 
@@ -45,6 +48,7 @@ data OptionsError
     | UnknownOption Text
     | MissingOptionValue Text
     | UnexpectedArgument Text
+    | InvalidDirection Text
     deriving (Eq, Show)
 
 -- | Parses command line arguments without performing any input or output.
@@ -54,54 +58,100 @@ parseOptions arguments
     | any (`elem` ["-V", "--version"]) arguments = Right ShowVersion
     | otherwise = Convert <$> parseConversion arguments
 
+data PartialOptions = PartialOptions
+    { partialInput :: Maybe FilePath
+    , partialOutput :: Maybe FilePath
+    , partialDirection :: ConversionDirection
+    }
+
+emptyOptions :: PartialOptions
+emptyOptions =
+    PartialOptions
+        { partialInput = Nothing
+        , partialOutput = Nothing
+        , partialDirection = ZimToMarkdown
+        }
+
 parseConversion :: [String] -> Either OptionsError ConversionRequest
-parseConversion = go Nothing Nothing
+parseConversion = go emptyOptions
   where
-    go input output [] =
-        case input of
+    go options [] =
+        case partialInput options of
             Nothing -> Left MissingInput
             Just path ->
                 Right
                     ConversionRequest
                         { conversionInput = InputPath path
-                        , conversionOutput = OutputPath <$> output
+                        , conversionOutput = OutputPath <$> partialOutput options
+                        , conversionDirection = partialDirection options
                         }
-    go _ _ ["--output"] = Left (MissingOptionValue "--output")
-    go _ _ ["-o"] = Left (MissingOptionValue "-o")
-    go input output ("--output" : value : rest) = go input (Just value) rest
-    go input output ("-o" : value : rest) = go input (Just value) rest
-    go input output (argument : rest)
+    go _ ["--output"] = Left (MissingOptionValue "--output")
+    go _ ["-o"] = Left (MissingOptionValue "-o")
+    go _ ["--direction"] = Left (MissingOptionValue "--direction")
+    go _ ["-d"] = Left (MissingOptionValue "-d")
+    go options ("--output" : value : rest) =
+        go options {partialOutput = Just value} rest
+    go options ("-o" : value : rest) =
+        go options {partialOutput = Just value} rest
+    go options ("--direction" : value : rest) =
+        setDirection options value rest
+    go options ("-d" : value : rest) =
+        setDirection options value rest
+    go options (argument : rest)
         | isOption argument = Left (UnknownOption (Text.pack argument))
         | otherwise =
-            case input of
-                Nothing -> go (Just argument) output rest
+            case partialInput options of
+                Nothing ->
+                    go options {partialInput = Just argument} rest
                 Just _ -> Left (UnexpectedArgument (Text.pack argument))
+
+    setDirection options value rest =
+        case parseDirection value of
+            Nothing -> Left (InvalidDirection (Text.pack value))
+            Just direction ->
+                go options {partialDirection = direction} rest
 
     isOption ('-' : _) = True
     isOption _ = False
+
+parseDirection :: String -> Maybe ConversionDirection
+parseDirection value =
+    case value of
+        "zim-to-markdown" -> Just ZimToMarkdown
+        "markdown-to-zim" -> Just MarkdownToZim
+        _ -> Nothing
 
 -- | Renders an option parsing failure as a user facing message.
 renderOptionsError :: OptionsError -> Text
 renderOptionsError optionsError =
     case optionsError of
-        MissingInput -> "Missing input file."
+        MissingInput -> "Missing input file or directory."
         UnknownOption option -> "Unknown option: " <> option
         MissingOptionValue option -> "Missing value for option: " <> option
         UnexpectedArgument argument -> "Unexpected argument: " <> argument
+        InvalidDirection direction ->
+            "Invalid direction: "
+                <> direction
+                <> ". Use zim-to-markdown or markdown-to-zim."
 
 -- | Command line usage description.
 helpText :: Text
 helpText =
     Text.unlines
-        [ "zim-to-markdown - converts Zim wiki pages to Markdown."
+        [ "zim-to-markdown - converts between Zim wiki and Markdown."
         , ""
         , "Usage:"
-        , "  zim-to-markdown [--output FILE] INPUT"
+        , "  zim-to-markdown [--direction DIRECTION] [--output PATH] INPUT"
         , "  zim-to-markdown --help"
         , "  zim-to-markdown --version"
         , ""
         , "Options:"
-        , "  -o, --output FILE  Write the result to FILE; defaults to stdout."
-        , "  -h, --help         Show this help."
-        , "  -V, --version      Show the application version."
+        , "  -d, --direction DIRECTION  zim-to-markdown (default) or markdown-to-zim."
+        , "  -o, --output PATH          Output file for a page; output directory for a notebook."
+        , "  -h, --help                 Show this help."
+        , "  -V, --version              Show the application version."
+        , ""
+        , "A notebook is a directory. Its page files are converted and its other"
+        , "files are copied, preserving the folder structure. Hidden files and"
+        , "symbolic links are skipped."
         ]

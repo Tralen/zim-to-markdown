@@ -1,29 +1,45 @@
 # Domain model
 
-## Zim page
+## Directions
+
+A `ConversionDirection` is either `ZimToMarkdown` or `MarkdownToZim`. The
+constructor determines which parser reads the input and which extension is
+used for output pages.
+
+## Documents
 
 A `ZimPage` is the immutable text of one page read from a Zim wiki notebook.
-It still contains Zim markup and has not been interpreted.
+It still contains Zim markup and has not been interpreted. A
+`MarkdownDocument` is the immutable text produced by a successful conversion
+to Markdown.
 
-## Markdown document
+## Notebook paths
 
-A `MarkdownDocument` is the immutable text produced by a successful
-conversion. It is ready to be written to disk or standard output.
+A `RelativePath` is a path relative to the root of a notebook. It identifies a
+page or asset independently of the notebook location on disk. `RelativePath`
+derives `Ord` so it can be stored in a `Set` for link resolution.
 
-## Conversion request
+## Link context
 
-A `ConversionRequest` records the command line intention: one `InputPath` and
-an optional `OutputPath`. When the output path is absent, the result goes to
-standard output.
+`LinkContext` records the current page and every known page in the notebook.
+It allows the converter to resolve Zim link semantics:
 
-## Paths
+- `[[page]]` searches the current namespace and then its parents.
+- `[[:page]]` targets the notebook root.
+- `[[+page]]` targets a child of the current page.
 
-`InputPath` and `OutputPath` are newtypes over `FilePath`. They prevent input
-and output paths from being mixed accidentally.
+The resolved target is rendered relative to the current page and with the
+output extension, so the generated Markdown links remain valid.
 
-## Errors
+## Notebook items
 
-Command line failures are modeled by `OptionsError`. Input and output failures
-are reported by `Main` as `Text` messages because they describe effects at the
-boundary. Conversion itself currently cannot fail; if it gains failure cases,
-they must be modeled as an algebraic data type and returned in `Either`.
+A discovered file is classified as either a `PageItem` or an `AssetItem`.
+Pages are converted. Assets are copied verbatim to preserve images and
+attachments referenced by the pages.
+
+## Requests and errors
+
+A `ConversionRequest` records the input path, the optional output path, and the
+direction. Command line failures are modeled by `OptionsError`. Input and
+output failures are reported by `Main` as `Text` messages because they describe
+effects at the boundary.
