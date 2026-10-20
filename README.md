@@ -6,6 +6,7 @@ Command line converter between Zim wiki pages and Markdown. It handles single pa
 
 - Converts a single page to standard output or to a file.
 - Converts a whole notebook recursively, reconstructing its folder structure.
+- Strips the leading Zim metadata header and normalizes heading levels to `#`, `##`, and `###`.
 - Accepts the notebook directory or its `notebook.zim` configuration file as input.
 - Copies notebook assets so images and attachments keep working.
 - Resolves internal Zim links across the notebook.

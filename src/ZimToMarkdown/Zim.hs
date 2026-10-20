@@ -3,6 +3,8 @@ module ZimToMarkdown.Zim
     ) where
 
 import Data.Char (isAlpha, isDigit)
+import Data.List (nub, sort)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as Text
 import System.FilePath (takeBaseName)
@@ -25,11 +27,58 @@ import ZimToMarkdown.Table
 -- | Converts a Zim page into Markdown.
 convertZimToMarkdown :: LinkContext -> ZimPage -> MarkdownDocument
 convertZimToMarkdown context (ZimPage content) =
-    MarkdownDocument
+    let lines =
+            Text.splitOn
+                "\n"
+                (stripZimHeader (normalizeNewlines content))
+        headingMap = buildHeadingMap lines
+    in MarkdownDocument
         ( Text.intercalate
             "\n"
-            (renderBlocks context (Text.splitOn "\n" (normalizeNewlines content)))
+            (renderBlocks context headingMap lines)
         )
+
+stripZimHeader :: Text -> Text
+stripZimHeader content =
+    let lines = Text.splitOn "\n" content
+        remaining = dropWhile isMetadataLine lines
+    in if length remaining == length lines
+        then content
+        else Text.intercalate "\n" (dropWhile isBlank remaining)
+
+isMetadataLine :: Text -> Bool
+isMetadataLine line =
+    let key = Text.toLower (Text.strip (fst (Text.breakOn ":" line)))
+    in key `elem` metadataKeys
+
+metadataKeys :: [Text]
+metadataKeys =
+    [ "content-type"
+    , "wiki-format"
+    , "creation-date"
+    , "modification-date"
+    ]
+
+isBlank :: Text -> Bool
+isBlank = Text.null . Text.strip
+
+-- | Compresses the heading levels present in a page into consecutive
+-- Markdown levels starting at one.
+buildHeadingMap :: [Text] -> Map.Map Int Int
+buildHeadingMap lines =
+    Map.fromList
+        (zip (sort (nub (collectHeadingLevels lines))) [1 ..])
+
+collectHeadingLevels :: [Text] -> [Int]
+collectHeadingLevels = go OutsideVerbatim
+  where
+    go _ [] = []
+    go state (line : rest)
+        | isVerbatimDelimiter line = go (toggleState state) rest
+        | state == InsideVerbatim = go InsideVerbatim rest
+        | Just (level, _) <- parseHeading line =
+            level : go OutsideVerbatim rest
+        | otherwise = go OutsideVerbatim rest
 
 normalizeNewlines :: Text -> Text
 normalizeNewlines =
@@ -40,37 +89,43 @@ data BlockState
     | InsideVerbatim
     deriving (Eq)
 
-renderBlocks :: LinkContext -> [Text] -> [Text]
-renderBlocks context = go OutsideVerbatim
+renderBlocks :: LinkContext -> Map.Map Int Int -> [Text] -> [Text]
+renderBlocks context headingMap = go OutsideVerbatim
   where
     go _ [] = []
     go state (line : rest)
         | isVerbatimDelimiter line =
-            "```" : go (toggle state) rest
+            "```" : go (toggleState state) rest
         | state == InsideVerbatim =
             line : go InsideVerbatim rest
         | isTableStart line =
             let (block, remaining) = takeTableBlock (line : rest)
             in normalizeTable block <> go OutsideVerbatim remaining
         | otherwise =
-            renderLine context line : go OutsideVerbatim rest
+            renderLine context headingMap line : go OutsideVerbatim rest
 
-    toggle OutsideVerbatim = InsideVerbatim
-    toggle InsideVerbatim = OutsideVerbatim
+toggleState :: BlockState -> BlockState
+toggleState OutsideVerbatim = InsideVerbatim
+toggleState InsideVerbatim = OutsideVerbatim
 
 isVerbatimDelimiter :: Text -> Bool
 isVerbatimDelimiter line = Text.strip line == "'''"
 
-renderLine :: LinkContext -> Text -> Text
-renderLine context line
+renderLine :: LinkContext -> Map.Map Int Int -> Text -> Text
+renderLine context headingMap line
     | Text.null (Text.strip line) = line
     | Just (level, content) <- parseHeading line =
-        Text.replicate level "#" <> " " <> convertInline context content
+        let markdownLevel =
+                min 3 (Map.findWithDefault level level headingMap)
+        in Text.replicate markdownLevel "#"
+            <> " "
+            <> convertInline context content
     | isHorizontalRule line = "---"
     | Just listLine <- parseListLine line =
         renderListLine context listLine
     | Just (depth, content) <- parseIndentedBlock line =
-        Text.replicate depth "> " <> renderLine context content
+        Text.replicate depth "> "
+            <> renderLine context headingMap content
     | otherwise = convertInline context line
 
 isHorizontalRule :: Text -> Bool

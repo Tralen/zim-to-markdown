@@ -54,11 +54,36 @@ tests =
     , TestCase
         "zim heading level 2"
         (zimToMarkdown "===== Second =====")
-        "## Second"
+        "# Second"
     , TestCase
         "zim heading level 5"
         (zimToMarkdown "== Fifth ==")
-        "##### Fifth"
+        "# Fifth"
+    , TestCase
+        "zim heading hierarchy"
+        (zimToMarkdown (Text.unlines ["====== Title ======", "", "=== Section ===", "", "== Subsection =="]))
+        (Text.unlines ["# Title", "", "## Section", "", "### Subsection"])
+    , TestCase
+        "zim deep heading hierarchy"
+        (zimToMarkdown (Text.unlines ["=== Section ===", "", "== Subsection =="]))
+        (Text.unlines ["# Section", "", "## Subsection"])
+    , TestCase
+        "zim headings are capped at three levels"
+        (zimToMarkdown (Text.unlines ["====== Title ======", "===== Two =====", "==== Three ====", "=== Four ===", "== Five =="]))
+        (Text.unlines ["# Title", "## Two", "### Three", "### Four", "### Five"])
+    , TestCase
+        "zim metadata header removed"
+        ( zimToMarkdown
+            ( Text.unlines
+                [ "Content-Type: text/x-zim-wiki"
+                , "Wiki-Format: zim 0.6"
+                , "Creation-Date: 2016-04-15T16:02:48-03:00"
+                , ""
+                , "====== Backup ======"
+                ]
+            )
+        )
+        (Text.unlines ["# Backup"])
     , TestCase
         "zim bold"
         (zimToMarkdown "**bold**")
@@ -119,6 +144,18 @@ tests =
         "zim root link"
         (zimToMarkdown "[[:root]]")
         "[root](../root.md)"
+    , TestCase
+        "zim namespace link"
+        (zimToMarkdownWithContext rootLinkContext "[[Sistema:cron|página]]")
+        "[página](Sistema/cron.md)"
+    , TestCase
+        "zim pseudo link"
+        (zimToMarkdown "[[tunai@operador.local]]")
+        "tunai@operador.local"
+    , TestCase
+        "zim pseudo link with label"
+        (zimToMarkdown "[[tunai@operador.local|''tunai@operador.local'']]")
+        "tunai@operador.local"
     , TestCase
         "zim child link"
         (zimToMarkdown "[[+child]]")
@@ -314,8 +351,11 @@ tests =
     ]
 
 zimToMarkdown :: Text -> Text
-zimToMarkdown input =
-    unMarkdownDocument (convertZimPage linkContext (ZimPage input))
+zimToMarkdown = zimToMarkdownWithContext linkContext
+
+zimToMarkdownWithContext :: LinkContext -> Text -> Text
+zimToMarkdownWithContext context input =
+    unMarkdownDocument (convertZimPage context (ZimPage input))
 
 markdownToZim :: Text -> Text
 markdownToZim input =
@@ -331,5 +371,16 @@ linkContext =
                 , RelativePath ("notes" </> "sibling.txt")
                 , RelativePath "root.txt"
                 , RelativePath ("notes" </> "page" </> "child.txt")
+                ]
+        }
+
+rootLinkContext :: LinkContext
+rootLinkContext =
+    LinkContext
+        { linkCurrentPage = RelativePath "Backup.txt"
+        , linkKnownPages =
+            Set.fromList
+                [ RelativePath "Backup.txt"
+                , RelativePath ("Sistema" </> "cron.txt")
                 ]
         }

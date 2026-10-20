@@ -43,7 +43,10 @@ renderZimLink context renderLabel rawInner =
                 else
                     if isExternalTarget target
                         then renderExternal renderLabel target label
-                        else renderInternal context renderLabel target label
+                        else
+                            if isPseudoLink target
+                                then renderPlain target label
+                                else renderInternal context renderLabel target label
 
 -- | Tests whether a link target points outside the notebook.
 isExternalTarget :: Text -> Bool
@@ -52,6 +55,29 @@ isExternalTarget target =
         (`Text.isPrefixOf` target)
         ["http://", "https://", "ftp://", "ftps://", "mailto:", "file:"]
         || "://" `Text.isInfixOf` target
+
+-- | Tests whether a target looks like a user or host identifier rather than
+-- a notebook page, such as an SSH destination.
+isPseudoLink :: Text -> Bool
+isPseudoLink target =
+    "@" `Text.isInfixOf` target
+        && not ("/" `Text.isInfixOf` target)
+        && not ("\\" `Text.isInfixOf` target)
+        && not (" " `Text.isInfixOf` target)
+
+renderPlain :: Text -> Maybe Text -> Text
+renderPlain target label =
+    maybe target stripInlineVerbatim label
+
+stripInlineVerbatim :: Text -> Text
+stripInlineVerbatim text =
+    let trimmed = Text.strip text
+    in case Text.stripPrefix "''" trimmed of
+        Just rest ->
+            case Text.stripSuffix "''" rest of
+                Just inner -> inner
+                Nothing -> trimmed
+        Nothing -> trimmed
 
 splitLink :: Text -> (Text, Maybe Text)
 splitLink inner =
@@ -121,21 +147,34 @@ targetCandidates :: FilePath -> FilePath -> FilePath -> ([FilePath], FilePath)
 targetCandidates currentPage currentDirectory target =
     case target of
         ':' : rest ->
-            let rooted = normalise (dropLeadingSeparators rest)
+            let rooted =
+                    normalise
+                        (dropLeadingSeparators (namespacePath rest))
             in ([rooted], rooted)
         '+' : rest ->
-            let child = normalise (dropExtension currentPage </> rest)
+            let child =
+                    normalise
+                        (dropExtension currentPage </> namespacePath rest)
             in ([child], child)
         _ ->
-            let parents = parentDirectories currentDirectory
+            let normalizedTarget = namespacePath target
+                parents = parentDirectories currentDirectory
                 candidates =
-                    [normalise (directory </> target) | directory <- parents]
-                        <> [normalise target]
+                    [ normalise (directory </> normalizedTarget)
+                    | directory <- parents
+                    ]
+                        <> [normalise normalizedTarget]
                 fallback =
                     if currentDirectory == "."
-                        then normalise target
-                        else normalise (currentDirectory </> target)
+                        then normalise normalizedTarget
+                        else
+                            normalise
+                                (currentDirectory </> normalizedTarget)
             in (candidates, fallback)
+
+namespacePath :: FilePath -> FilePath
+namespacePath =
+    map (\character -> if character == ':' then '/' else character)
 
 parentDirectories :: FilePath -> [FilePath]
 parentDirectories directory

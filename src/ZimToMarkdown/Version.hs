@@ -23,7 +23,7 @@ appVersion =
     Version
         { versionMajor = 0
         , versionMinor = 3
-        , versionPatch = 0
+        , versionPatch = 1
         , versionRevision = 0
         }
 

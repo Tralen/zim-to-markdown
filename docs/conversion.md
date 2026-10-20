@@ -25,6 +25,8 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 | `[*] task`, `[x] task`, `[>] task`, or `[<] task` | `- [x] task` |
 | `[[page]]` | `[page](page.md)` |
 | `[[page\|label]]` | `[label](page.md)` |
+| `[[Sistema:cron]]` | `[Sistema:cron](Sistema/cron.md)` |
+| `[[tunai@operador.local\|user@host]]` | plain text |
 | `[[:page]]` | link to the notebook root |
 | `[[+page]]` | link to a child of the current page |
 | `[[https://example.com\|label]]` | `[label](https://example.com)` |
@@ -35,7 +37,9 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 | Tab-indented block | `> blockquote` |
 | `\| cell \| cell \|` pipe table | pipe table with an alignment row |
 
-Zim heading levels one through five map to Markdown levels one through five. A pipe table without an alignment row receives a default alignment row.
+Leading Zim metadata header lines (`Content-Type`, `Wiki-Format`, `Creation-Date`, `Modification-Date`) are removed. Heading levels are normalized per page: distinct Zim levels are compressed into consecutive Markdown levels starting at `#` and capped at `###`. A pipe table without an alignment row receives a default alignment row.
+
+Colons in internal link targets are translated to path separators, so `[[Sistema:cron]]` points to `Sistema/cron.md`. Targets that look like `user@host` are rendered as plain text instead of page links.
 
 ## Markdown to Zim
 
