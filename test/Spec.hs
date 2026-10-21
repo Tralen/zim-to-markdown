@@ -17,6 +17,7 @@ import ZimToMarkdown.Domain
     )
 import ZimToMarkdown.Links (LinkContext (..))
 import ZimToMarkdown.Notebook (outputRelativePath)
+import ZimToMarkdown.Version (versionText)
 
 data TestCase = TestCase
     { testName :: String
@@ -48,6 +49,10 @@ printFailure test = do
 tests :: [TestCase]
 tests =
     [ TestCase
+        "version text matches the package version"
+        versionText
+        "0.3.0.1"
+    , TestCase
         "zim heading level 1"
         (zimToMarkdown "====== Title ======")
         "# Title"

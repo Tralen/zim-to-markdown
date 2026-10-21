@@ -23,8 +23,8 @@ appVersion =
     Version
         { versionMajor = 0
         , versionMinor = 3
-        , versionPatch = 1
-        , versionRevision = 0
+        , versionPatch = 0
+        , versionRevision = 1
         }
 
 -- | Renders a version as @major.minor.patch.revision@.
