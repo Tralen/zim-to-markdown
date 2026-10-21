@@ -38,7 +38,7 @@ cabal install zim-to-markdown
 
 ## Prebuilt binaries
 
-Prebuilt Linux, macOS, and Windows binaries are attached to [GitHub releases](https://github.com/Tralen/zim-to-markdown/releases/latest).
+Prebuilt Linux, macOS, and Windows binaries are attached to [GitHub releases](https://github.com/Tralen/zim-to-markdown/releases/latest). The release workflow currently builds Linux x86_64, macOS ARM64, and Windows x86_64 archives. The Linux binary requires a compatible glibc; build from source for other Linux distributions.
 
 ## Requirements
 
