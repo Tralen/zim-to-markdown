@@ -2,6 +2,14 @@
 
 Command line converter between Zim wiki pages and Markdown. It handles single pages and whole notebooks in both directions.
 
+## Stack
+
+Haskell with Cabal. Stack is not used.
+
+## Versioning
+
+PVP, single-sourced from the `zim-to-markdown.cabal` file.
+
 ## Features
 
 - Converts a single page to standard output or to a file.
