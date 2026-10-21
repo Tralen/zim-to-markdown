@@ -36,6 +36,10 @@ Install the published package with:
 cabal install zim-to-markdown
 ```
 
+## Prebuilt binaries
+
+Prebuilt Linux, macOS, and Windows binaries are attached to [GitHub releases](https://github.com/Tralen/zim-to-markdown/releases/latest).
+
 ## Requirements
 
 - GHC 9.14.1
