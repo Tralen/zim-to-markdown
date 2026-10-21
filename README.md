@@ -6,13 +6,18 @@ Command line converter between Zim wiki pages and Markdown. It handles single pa
 
 - Converts a single page to standard output or to a file.
 - Converts a whole notebook recursively, reconstructing its folder structure.
-- Strips the leading Zim metadata header and normalizes heading levels to `#`, `##`, and `###`.
 - Accepts the notebook directory or its `notebook.zim` configuration file as input.
+- Strips the leading Zim metadata header and normalizes heading levels to `#`, `##`, and `###`.
 - Copies notebook assets so images and attachments keep working.
 - Resolves internal Zim links across the notebook.
 - Converts Markdown back to Zim, including notebook structure.
 - Supports headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks.
 - Keeps conversion pure and reports failures as data.
+
+## Links
+
+- Hackage: <https://hackage.haskell.org/package/zim-to-markdown>
+- GitHub: <https://github.com/Tralen/zim-to-markdown>
 
 ## Documentation
 
@@ -21,6 +26,15 @@ Command line converter between Zim wiki pages and Markdown. It handles single pa
 - [Command line interface](docs/cli.md)
 - [Conversion rules](docs/conversion.md)
 - [Versioning](docs/versioning.md)
+- [Changelog](CHANGELOG.md)
+
+## Installation
+
+Install the published package with:
+
+```sh
+cabal install zim-to-markdown
+```
 
 ## Requirements
 
@@ -68,6 +82,21 @@ cabal run zim-to-markdown -- --direction markdown-to-zim notes --output notes-zi
 
 Run `cabal run zim-to-markdown -- --help` for the complete option list.
 
+## Releasing
+
+Check the package metadata and build the source distribution:
+
+```sh
+cabal check
+cabal sdist
+```
+
+Upload the generated tarball from `dist-newstyle/sdist/` with `cabal upload`.
+
 ## Status
 
 The converter covers headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks. Reference links, footnotes, nested links, raw HTML blocks, and Markdown indented code blocks are not converted yet. See [conversion rules](docs/conversion.md) for details and known limitations.
+
+## License
+
+BSD-3-Clause. See [LICENSE](LICENSE).

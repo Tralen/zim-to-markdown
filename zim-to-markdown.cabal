@@ -2,19 +2,36 @@ cabal-version:      3.0
 name:               zim-to-markdown
 version:            0.3.0.1
 synopsis:           Converts Zim wiki pages to Markdown and back.
-description:        A command line converter between Zim wiki markup and Markdown for single pages and whole notebooks.
+description:
+    A command line converter between Zim wiki markup and Markdown.
+
+    It converts single pages and whole notebooks in both directions,
+    copies notebook assets, preserves the folder structure, and resolves
+    internal links.
+
+    Zim metadata headers are removed and heading levels are normalized
+    for Markdown output.
+homepage:           https://github.com/Tralen/zim-to-markdown
+bug-reports:        https://github.com/Tralen/zim-to-markdown/issues
 license:            BSD-3-Clause
 license-file:       LICENSE
-author:             Tunai Raiol
+author:             Tunai Raiol <dev@tralen.cc>
 maintainer:         Tralen <dev@tralen.cc>
+copyright:          2026 Tunai Raiol
 category:           Text
 build-type:         Simple
-extra-doc-files:    README.md
+tested-with:        GHC ==9.14.1
+extra-doc-files:    CHANGELOG.md
+                    README.md
                     docs/architecture.md
                     docs/cli.md
                     docs/conversion.md
                     docs/domain.md
                     docs/versioning.md
+
+source-repository head
+    type:     git
+    location: https://github.com/Tralen/zim-to-markdown.git
 
 common warnings
     ghc-options:

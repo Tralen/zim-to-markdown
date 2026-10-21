@@ -150,12 +150,12 @@ tests =
         "[página](Sistema/cron.md)"
     , TestCase
         "zim pseudo link"
-        (zimToMarkdown "[[tunai@operador.local]]")
-        "tunai@operador.local"
+        (zimToMarkdown "[[user@host.example]]")
+        "user@host.example"
     , TestCase
         "zim pseudo link with label"
-        (zimToMarkdown "[[tunai@operador.local|''tunai@operador.local'']]")
-        "tunai@operador.local"
+        (zimToMarkdown "[[user@host.example|''user@host.example'']]")
+        "user@host.example"
     , TestCase
         "zim child link"
         (zimToMarkdown "[[+child]]")

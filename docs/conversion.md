@@ -26,7 +26,7 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 | `[[page]]` | `[page](page.md)` |
 | `[[page\|label]]` | `[label](page.md)` |
 | `[[Sistema:cron]]` | `[Sistema:cron](Sistema/cron.md)` |
-| `[[tunai@operador.local\|user@host]]` | plain text |
+| `[[user@host.example\|user@host]]` | plain text |
 | `[[:page]]` | link to the notebook root |
 | `[[+page]]` | link to a child of the current page |
 | `[[https://example.com\|label]]` | `[label](https://example.com)` |
