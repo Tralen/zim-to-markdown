@@ -1,23 +1,23 @@
 name: Release binaries
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing release tag to upload assets to
+        description: Existing release tag to build and upload assets to
         required: true
         type: string
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    environment: release
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.inputs.release_tag || github.ref }}
+          ref: ${{ github.event.inputs.release_tag }}
 
       - name: Set up Haskell
         uses: haskell-actions/setup@v2
@@ -53,7 +53,7 @@ jobs:
       - name: Package binary
         shell: bash
         env:
-          TAG_NAME: ${{ github.event.inputs.release_tag || github.ref_name }}
+          TAG_NAME: ${{ github.event.inputs.release_tag }}
         run: |
           VERSION="${TAG_NAME#v}"
           PLATFORM="${RUNNER_OS}-${RUNNER_ARCH}"
@@ -76,11 +76,43 @@ jobs:
           name: zim-to-markdown-${{ runner.os }}-${{ runner.arch }}
           path: ${{ env.ASSET_PATH }}
 
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ env.ASSET_PATH }}
+
       - name: Attach to GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.event.inputs.release_tag || github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ github.event.inputs.release_tag }}
         run: |
           gh release view "$TAG_NAME" >/dev/null 2>&1 || gh release create "$TAG_NAME" --title "zim-to-markdown ${TAG_NAME#v}" --generate-notes
           gh release upload "$TAG_NAME" "$ASSET_PATH" --clobber
+
+  checksums:
+    name: Publish checksums
+    needs: build
+    runs-on: ubuntu-22.04
+    environment: release
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS
+        shell: bash
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS
+
+      - name: Upload checksums
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ github.event.inputs.release_tag }}
+        run: gh release upload "$TAG_NAME" artifacts/SHA256SUMS --clobber

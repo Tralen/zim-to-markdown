@@ -1,3 +1,4 @@
+-- | Relative path calculations shared by link resolution and the executable.
 module ZimToMarkdown.Paths
     ( relativePathFrom
     , toPosixPath

@@ -1,3 +1,4 @@
+-- | Resolution of Zim links against notebook context.
 module ZimToMarkdown.Links
     ( LinkContext (..)
     , isExternalTarget
@@ -6,6 +7,7 @@ module ZimToMarkdown.Links
 
 import Data.Char (toLower)
 import Data.List (find)
+import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -66,18 +68,15 @@ isPseudoLink target =
         && not (" " `Text.isInfixOf` target)
 
 renderPlain :: Text -> Maybe Text -> Text
-renderPlain target label =
-    maybe target stripInlineVerbatim label
+renderPlain target = maybe target stripInlineVerbatim
 
 stripInlineVerbatim :: Text -> Text
 stripInlineVerbatim text =
     let trimmed = Text.strip text
-    in case Text.stripPrefix "''" trimmed of
-        Just rest ->
-            case Text.stripSuffix "''" rest of
-                Just inner -> inner
-                Nothing -> trimmed
-        Nothing -> trimmed
+    in fromMaybe trimmed
+        ( Text.stripPrefix "''" trimmed
+            >>= Text.stripSuffix "''"
+        )
 
 splitLink :: Text -> (Text, Maybe Text)
 splitLink inner =
@@ -134,9 +133,9 @@ resolveTarget context rawTarget =
         (candidates, fallback) =
             targetCandidates currentPage currentDirectory target
         chosen =
-            case find (isKnownPage context) candidates of
-                Just candidate -> candidate
-                Nothing -> fallback
+            fromMaybe
+                fallback
+                (find (isKnownPage context) candidates)
         markdownPath = addExtension chosen "md"
         relativePath =
             normalise

@@ -29,7 +29,7 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 
 ## Links
 
-- Hackage: <https://hackage.haskell.org/package/zim-to-markdown>
+- Hackage: <https://hackage.haskell.org/package/zim-to-markdown> (available after the first publication)
 - GitHub: <https://github.com/Tralen/zim-to-markdown>
 
 ## Documentation
@@ -43,7 +43,7 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 
 ## Installation
 
-Install the published package with:
+After the first Hackage publication, install with:
 
 ```sh
 cabal install zim-to-markdown
@@ -64,6 +64,22 @@ Prebuilt Linux, macOS, and Windows binaries are attached to [GitHub releases](ht
 cabal build
 cabal test
 ```
+
+## Development
+
+Run the linter with:
+
+```sh
+hlint src app test
+```
+
+Install the pre-commit hook to scan staged changes for secrets:
+
+```sh
+pre-commit install
+```
+
+The hook requires `gitleaks` to be installed.
 
 ## Usage
 
@@ -101,14 +117,28 @@ Run `cabal run zim-to-markdown -- --help` for the complete option list.
 
 ## Releasing
 
-Check the package metadata and build the source distribution:
+Check the package and build the source and documentation distributions:
 
 ```sh
 cabal check
 cabal sdist
+cabal haddock --haddock-for-hackage
 ```
 
-Upload the generated tarball from `dist-newstyle/sdist/` with `cabal upload`.
+Upload a candidate and inspect it before publishing:
+
+```sh
+cabal upload dist-newstyle/sdist/zim-to-markdown-*.tar.gz
+```
+
+Publishing is manual and requires explicit approval. After approval, publish the source package and its documentation:
+
+```sh
+cabal upload --publish dist-newstyle/sdist/zim-to-markdown-*.tar.gz
+cabal upload --publish --documentation dist-newstyle/zim-to-markdown-*-docs.tar.gz
+```
+
+Create and verify the release tag, push it, and start the `Release binaries` workflow manually. The workflow attaches the binaries, `SHA256SUMS`, and provenance attestations to the GitHub release.
 
 ## Status
 

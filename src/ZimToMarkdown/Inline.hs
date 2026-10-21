@@ -1,3 +1,4 @@
+-- | Shared scanning helpers for inline markup.
 module ZimToMarkdown.Inline
     ( breakOnFirstMarker
     , enclosed

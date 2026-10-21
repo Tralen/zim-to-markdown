@@ -6,9 +6,7 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 
 | Zim | Markdown |
 | --- | --- |
-| `====== Heading ======` | `# Heading` |
-| `===== Heading =====` | `## Heading` |
-| `== Heading ==` | `##### Heading` |
+| `=` heading syntax, levels 1 to 5 | Normalized Markdown heading, from `#` to `###` |
 | `**bold**` | `**bold**` |
 | `//italic//` | `*italic*` |
 | `__underline__` | `<u>underline</u>` |
@@ -45,8 +43,8 @@ Colons in internal link targets are translated to path separators, so `[[Sistema
 
 | Markdown | Zim |
 | --- | --- |
-| `# Heading` through `##### Heading` | two through six `=` characters |
-| `###### Heading` | clamped to Zim heading level five |
+| `# Heading` through `##### Heading` | six through two `=` characters |
+| `###### Heading` | clamped to Zim heading level five (two `=` characters) |
 | Setext heading with `=` | Zim heading level one |
 | Setext heading with `-` | Zim heading level two |
 | `**bold**` or `__bold__` | `**bold**` |

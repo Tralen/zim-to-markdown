@@ -5,8 +5,10 @@ module Main
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.Version (showVersion)
 import System.Exit (exitFailure)
 import System.FilePath ((</>))
+import Paths_zim_to_markdown (version)
 
 import ZimToMarkdown.Converter (convertMarkdownDocument, convertZimPage)
 import ZimToMarkdown.Domain
@@ -49,9 +51,9 @@ printFailure test = do
 tests :: [TestCase]
 tests =
     [ TestCase
-        "version text matches the package version"
+        "version text matches the Cabal package version"
         versionText
-        "0.3.0.1"
+        (Text.pack (showVersion version))
     , TestCase
         "zim heading level 1"
         (zimToMarkdown "====== Title ======")

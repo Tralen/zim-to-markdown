@@ -6,6 +6,16 @@ REGRESSION.md
 PROMPT.md
 TODO.md
 
+# Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.token
+credentials*
+.secrets/
+
 # Cabal
 dist-newstyle/
 cabal.project.local

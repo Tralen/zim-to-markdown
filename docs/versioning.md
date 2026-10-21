@@ -4,10 +4,7 @@ The project follows the Package Version Policy with four components: `major.mino
 
 ## Source of truth
 
-The version is stored in two places and they must stay in sync:
-
-- `version:` in `zim-to-markdown.cabal`, used by Cabal.
-- `appVersion` in `src/ZimToMarkdown/Version.hs`, used by the executable.
+The version is defined only in the `version:` field of `zim-to-markdown.cabal`. Cabal generates `Paths_zim_to_markdown`, and `ZimToMarkdown.Version` exposes that value to the executable and the test suite. There is no separate version constant to keep in sync.
 
 ## Bump rules
 

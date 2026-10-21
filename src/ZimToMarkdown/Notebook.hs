@@ -1,3 +1,4 @@
+-- | Classification and destination paths for notebook files.
 module ZimToMarkdown.Notebook
     ( NotebookItem (..)
     , classifyNotebookItems

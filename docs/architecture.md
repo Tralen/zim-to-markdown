@@ -16,7 +16,7 @@ The project is split into a pure library and a thin executable. All effects live
 | `ZimToMarkdown.Notebook` | Pure classification of notebook files and destination paths. |
 | `ZimToMarkdown.Paths` | Pure relative path calculation. |
 | `ZimToMarkdown.Options` | Pure command line parsing and user facing messages. |
-| `ZimToMarkdown.Version` | Application version and its rendering. |
+| `ZimToMarkdown.Version` | Application version sourced from the Cabal package metadata. |
 | `Main` | Effect boundary: filesystem discovery, reading, writing, and exit codes. |
 
 ## Data flow

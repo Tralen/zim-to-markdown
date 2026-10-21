@@ -1,3 +1,4 @@
+-- | Direction-specific conversion entry points.
 module ZimToMarkdown.Converter
     ( convertMarkdownDocument
     , convertZimPage

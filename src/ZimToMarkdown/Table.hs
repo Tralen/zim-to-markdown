@@ -1,3 +1,4 @@
+-- | Pipe table detection and normalization for both conversion directions.
 module ZimToMarkdown.Table
     ( isTableStart
     , normalizeTable

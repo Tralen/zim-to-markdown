@@ -1,3 +1,4 @@
+-- | Conversion from Zim wiki markup to Markdown.
 module ZimToMarkdown.Zim
     ( convertZimToMarkdown
     ) where

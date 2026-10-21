@@ -59,6 +59,8 @@ library
         ZimToMarkdown.Version
         ZimToMarkdown.Zim
     hs-source-dirs:   src
+    other-modules:    Paths_zim_to_markdown
+    autogen-modules:  Paths_zim_to_markdown
     build-depends:
         base        >=4.18 && <5,
         containers  >=0.6  && <0.9,
@@ -86,6 +88,8 @@ test-suite zim-to-markdown-test
     type:             exitcode-stdio-1.0
     main-is:          Spec.hs
     hs-source-dirs:   test
+    other-modules:    Paths_zim_to_markdown
+    autogen-modules:  Paths_zim_to_markdown
     build-depends:
         base              >=4.18 && <5,
         containers        >=0.6  && <0.9,

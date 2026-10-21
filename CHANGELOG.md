@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file. This project follows the Haskell Package Versioning Policy.
 
-## [0.3.0.1] - 2026-10-20
+## [0.3.0.1] - 2026-10-21
 
 ### Fixed
 
@@ -10,10 +10,12 @@ All notable changes to this project are documented in this file. This project fo
 - Normalized per-page heading levels into consecutive Markdown levels capped at `###`.
 - Translated namespace colons in internal links, so `[[Sistema:cron]]` resolves to `Sistema/cron.md`.
 - Rendered `user@host` pseudo-links as plain text instead of page links.
+- Corrected the reported application version to `0.3.0.1`.
 
 ### Changed
 
 - Added Hackage and GitHub package metadata, a changelog, and source repository information.
+- Added prebuilt Linux, macOS, and Windows binaries to GitHub releases.
 
 ## [0.3.0.0] - 2026-10-20
 

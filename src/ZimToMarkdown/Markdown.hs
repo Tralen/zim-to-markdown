@@ -1,3 +1,4 @@
+-- | Conversion from Markdown to Zim wiki markup.
 module ZimToMarkdown.Markdown
     ( convertMarkdownToZim
     ) where
@@ -174,12 +175,9 @@ stripClosingHashes text =
     let trimmed = Text.stripEnd text
         hashes = Text.takeWhileEnd (== '#') trimmed
         body = Text.dropEnd (Text.length hashes) trimmed
-    in if Text.null hashes
+    in if Text.null hashes || Text.null (Text.stripEnd body)
         then trimmed
-        else
-            if Text.null (Text.stripEnd body)
-                then trimmed
-                else Text.stripEnd body
+        else Text.stripEnd body
 
 data MarkdownListMarker
     = Bullet

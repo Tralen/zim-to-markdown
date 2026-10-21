@@ -1,3 +1,4 @@
+-- | Core immutable types used by the converter.
 module ZimToMarkdown.Domain
     ( ConversionDirection (..)
     , MarkdownDocument (..)

@@ -1,3 +1,4 @@
+-- | Command line parsing and usage messages.
 module ZimToMarkdown.Options
     ( ConversionRequest (..)
     , InputPath (..)
