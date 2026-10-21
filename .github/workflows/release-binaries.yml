@@ -24,7 +24,7 @@ jobs:
         include:
           - os: ubuntu-latest
             ghc: '9.14.1'
-          - os: macos-latest
+          - os: macos-15
             ghc: '9.14.1'
           - os: windows-latest
             ghc: '9.14.1'
