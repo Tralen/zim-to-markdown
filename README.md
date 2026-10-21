@@ -10,6 +10,11 @@ Haskell with Cabal. Stack is not used.
 
 PVP, single-sourced from the `zim-to-markdown.cabal` file.
 
+- Patch: fixes and minor refinements.
+- Minor: new user-facing features or screens.
+- Major 2: data model breaking changes.
+- Major 1: major release milestones.
+
 ## Features
 
 - Converts a single page to standard output or to a file.
