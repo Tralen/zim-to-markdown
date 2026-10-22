@@ -9,6 +9,7 @@ All notable changes to this project are documented in this file. This project fo
 - Adopted Fourmolu formatting with a pinned configuration.
 - Added Fourmolu and Gitleaks checks to CI and pinned GitHub Actions by commit SHA.
 - Added a dedicated release guide and made binary publication an explicit manual step.
+- Added the HLint configuration and documented SSH tag signing, checksum basenames, and environment secret handling.
 
 ## [0.3.0.1] - 2026-10-21
 

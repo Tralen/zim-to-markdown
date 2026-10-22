@@ -37,12 +37,17 @@ Wait for explicit authorization before publishing. The candidate URL is printed 
 
 ## Checksums
 
-Generate and verify checksums for the exact candidate artifacts:
+Generate and verify checksums for the exact candidate artifacts. Use a staging directory so the `SHA256SUMS` file contains asset basenames, not repository paths:
 
 ```sh
-sha256sum dist-newstyle/sdist/zim-to-markdown-*.tar.gz dist-newstyle/zim-to-markdown-*-docs.tar.gz > dist-newstyle/SHA256SUMS
-sha256sum -c dist-newstyle/SHA256SUMS
+mkdir -p dist-newstyle/checksums
+cp dist-newstyle/sdist/zim-to-markdown-*.tar.gz dist-newstyle/zim-to-markdown-*-docs.tar.gz dist-newstyle/checksums/
+cd dist-newstyle/checksums
+sha256sum * > SHA256SUMS
+sha256sum -c SHA256SUMS
 ```
+
+The source tarball hash must match the registry tarball and any attached source archive.
 
 ## Publish on Hackage
 
@@ -55,16 +60,30 @@ cabal upload --publish --documentation dist-newstyle/zim-to-markdown-*-docs.tar.
 
 ## Tag and GitHub release
 
-Create and push the annotated tag, then create the GitHub release:
+Create, verify, and push the signed tag, then create the GitHub release:
 
 ```sh
-git tag -a v<version> -m "zim-to-markdown <version>"
+git tag -s v<version> -m "zim-to-markdown <version>"
+git tag -v v<version>
 git push origin main
 git push origin v<version>
 gh release create v<version> --verify-tag --generate-notes
 ```
 
-Sign the tag with `git tag -s` when a signing key is configured. Do not rewrite or force-push an existing release tag.
+Do not rewrite or force-push an existing release tag. The existing `v0.3.0.1` tag predates the signing configuration and remains unsigned; sign the next tag.
+
+### Tag signing
+
+The repository uses SSH signing in the current setup. Configure it with:
+
+```sh
+git config gpg.format ssh
+git config user.signingkey <path-to-public-key>
+git config gpg.ssh.allowedSignersFile <path-to-allowed-signers>
+git config tag.gpgSign true
+```
+
+Add the same public key to GitHub as a signing key and add the signer e-mail to the allowed signers file. For OpenPGP, use the long key ID as `user.signingkey` instead.
 
 ## Verification
 
@@ -90,6 +109,10 @@ The workflow builds Linux x86_64, macOS ARM64, and Windows x86_64 archives, atta
 ## CI
 
 Push `main` before tagging so the CI matrix runs on Linux, macOS, and Windows, including GHC 9.6.7, GHC 9.14.1, HLint, Fourmolu, and Gitleaks.
+
+## Environment and secrets
+
+The `release` environment exists and is used by the `Release binaries` workflow. If a registry upload is added to a workflow, store its token as an environment secret and map it to the environment variable read by the upload command. Do not use Actions variables for tokens. Hackage publication is currently performed locally with `HACKAGE_TOKEN` in the environment.
 
 ## Rules
 
