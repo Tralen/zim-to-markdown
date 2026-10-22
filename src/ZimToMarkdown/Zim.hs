@@ -1,29 +1,29 @@
 -- | Conversion from Zim wiki markup to Markdown.
-module ZimToMarkdown.Zim
-    ( convertZimToMarkdown
-    ) where
+module ZimToMarkdown.Zim (
+    convertZimToMarkdown,
+) where
 
 import Data.Char (isAlpha, isDigit)
 import Data.List (nub, sort)
-import qualified Data.Map.Strict as Map
+import Data.Map.Strict qualified as Map
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import System.FilePath (takeBaseName)
 
 import ZimToMarkdown.Domain (MarkdownDocument (..), ZimPage (..))
-import ZimToMarkdown.Inline
-    ( breakOnFirstMarker
-    , enclosed
-    , italicBoundary
-    , renderInlineCode
-    , renderMarkdownPath
-    )
+import ZimToMarkdown.Inline (
+    breakOnFirstMarker,
+    enclosed,
+    italicBoundary,
+    renderInlineCode,
+    renderMarkdownPath,
+ )
 import ZimToMarkdown.Links (LinkContext, renderZimLink)
-import ZimToMarkdown.Table
-    ( isTableStart
-    , normalizeTable
-    , takeTableBlock
-    )
+import ZimToMarkdown.Table (
+    isTableStart,
+    normalizeTable,
+    takeTableBlock,
+ )
 
 -- | Converts a Zim page into Markdown.
 convertZimToMarkdown :: LinkContext -> ZimPage -> MarkdownDocument
@@ -33,24 +33,24 @@ convertZimToMarkdown context (ZimPage content) =
                 "\n"
                 (stripZimHeader (normalizeNewlines content))
         headingMap = buildHeadingMap lines
-    in MarkdownDocument
-        ( Text.intercalate
-            "\n"
-            (renderBlocks context headingMap lines)
-        )
+     in MarkdownDocument
+            ( Text.intercalate
+                "\n"
+                (renderBlocks context headingMap lines)
+            )
 
 stripZimHeader :: Text -> Text
 stripZimHeader content =
     let lines = Text.splitOn "\n" content
         remaining = dropWhile isMetadataLine lines
-    in if length remaining == length lines
-        then content
-        else Text.intercalate "\n" (dropWhile isBlank remaining)
+     in if length remaining == length lines
+            then content
+            else Text.intercalate "\n" (dropWhile isBlank remaining)
 
 isMetadataLine :: Text -> Bool
 isMetadataLine line =
     let key = Text.toLower (Text.strip (fst (Text.breakOn ":" line)))
-    in key `elem` metadataKeys
+     in key `elem` metadataKeys
 
 metadataKeys :: [Text]
 metadataKeys =
@@ -63,8 +63,9 @@ metadataKeys =
 isBlank :: Text -> Bool
 isBlank = Text.null . Text.strip
 
--- | Compresses the heading levels present in a page into consecutive
--- Markdown levels starting at one.
+{- | Compresses the heading levels present in a page into consecutive
+Markdown levels starting at one.
+-}
 buildHeadingMap :: [Text] -> Map.Map Int Int
 buildHeadingMap lines =
     Map.fromList
@@ -101,7 +102,7 @@ renderBlocks context headingMap = go OutsideVerbatim
             line : go InsideVerbatim rest
         | isTableStart line =
             let (block, remaining) = takeTableBlock (line : rest)
-            in normalizeTable block <> go OutsideVerbatim remaining
+             in normalizeTable block <> go OutsideVerbatim remaining
         | otherwise =
             renderLine context headingMap line : go OutsideVerbatim rest
 
@@ -118,9 +119,9 @@ renderLine context headingMap line
     | Just (level, content) <- parseHeading line =
         let markdownLevel =
                 min 3 (Map.findWithDefault level level headingMap)
-        in Text.replicate markdownLevel "#"
-            <> " "
-            <> convertInline context content
+         in Text.replicate markdownLevel "#"
+                <> " "
+                <> convertInline context content
     | isHorizontalRule line = "---"
     | Just listLine <- parseListLine line =
         renderListLine context listLine
@@ -132,32 +133,32 @@ renderLine context headingMap line
 isHorizontalRule :: Text -> Bool
 isHorizontalRule line =
     let trimmed = Text.strip line
-    in Text.length trimmed >= 5 && Text.all (== '-') trimmed
+     in Text.length trimmed >= 5 && Text.all (== '-') trimmed
 
 parseIndentedBlock :: Text -> Maybe (Int, Text)
 parseIndentedBlock line =
     let (tabs, afterTabs) = Text.span (== '\t') line
         (spaces, rest) = Text.span (== ' ') afterTabs
         depth = Text.length tabs + Text.length spaces `div` 4
-    in if depth == 0
-        then Nothing
-        else Just (depth, rest)
+     in if depth == 0
+            then Nothing
+            else Just (depth, rest)
 
 parseHeading :: Text -> Maybe (Int, Text)
 parseHeading line =
     let opening = Text.takeWhile (== '=') line
         count = Text.length opening
-    in if count >= 2 && count <= 6
-        then
-            let afterOpening = Text.drop count line
-                closing = Text.takeWhileEnd (== '=') afterOpening
-                content =
-                    Text.strip
-                        (Text.dropEnd (Text.length closing) afterOpening)
-            in if Text.length closing == count && not (Text.null content)
-                then Just (7 - count, content)
-                else Nothing
-        else Nothing
+     in if count >= 2 && count <= 6
+            then
+                let afterOpening = Text.drop count line
+                    closing = Text.takeWhileEnd (== '=') afterOpening
+                    content =
+                        Text.strip
+                            (Text.dropEnd (Text.length closing) afterOpening)
+                 in if Text.length closing == count && not (Text.null content)
+                        then Just (7 - count, content)
+                        else Nothing
+            else Nothing
 
 data ListMarker
     = Bullet
@@ -175,15 +176,15 @@ data ListLine = ListLine
 parseListLine :: Text -> Maybe ListLine
 parseListLine line =
     let (indent, rest) = Text.span isIndent line
-    in case parseMarker rest of
-        Nothing -> Nothing
-        Just (marker, content) ->
-            Just
-                ListLine
-                    { listIndent = indent
-                    , listMarker = marker
-                    , listContent = content
-                    }
+     in case parseMarker rest of
+            Nothing -> Nothing
+            Just (marker, content) ->
+                Just
+                    ListLine
+                        { listIndent = indent
+                        , listMarker = marker
+                        , listContent = content
+                        }
   where
     isIndent character = character == ' ' || character == '\t'
 
@@ -202,10 +203,9 @@ parseMarker text
 parseOrdered :: Text -> Maybe (ListMarker, Text)
 parseOrdered text =
     let (digits, afterDigits) = Text.span isDigit text
-    in if Text.null digits
-        then parseAlphabetic text
-        else
-            case Text.stripPrefix ". " afterDigits of
+     in if Text.null digits
+            then parseAlphabetic text
+            else case Text.stripPrefix ". " afterDigits of
                 Just rest -> Just (Numbered, rest)
                 Nothing -> parseAlphabetic text
 
@@ -235,7 +235,7 @@ renderListLine context listLine =
 indentToSpaces :: Text -> Text
 indentToSpaces =
     Text.concatMap
-        (\character ->
+        ( \character ->
             if character == '\t'
                 then "  "
                 else Text.singleton character
@@ -264,10 +264,10 @@ convertInline context = go
   where
     go text =
         let (plain, marker) = breakOnFirstMarker inlineMarkers text
-        in plain
-            <> case marker of
-                Nothing -> ""
-                Just suffix -> convertMarker plain suffix
+         in plain
+                <> case marker of
+                    Nothing -> ""
+                    Just suffix -> convertMarker plain suffix
 
     convertMarker preceding text
         | Just result <-
@@ -321,12 +321,12 @@ convertInline context = go
 renderAnchor :: Text -> Text
 renderAnchor inner =
     let name = Text.strip inner
-    in if Text.null name
-        then "{{id:}}"
-        else
-            "<a id=\""
-                <> Text.replace "\"" "&quot;" name
-                <> "\"></a>"
+     in if Text.null name
+            then "{{id:}}"
+            else
+                "<a id=\""
+                    <> Text.replace "\"" "&quot;" name
+                    <> "\"></a>"
 
 renderImage :: Text -> Text
 renderImage inner =
@@ -336,11 +336,11 @@ renderImage inner =
             if Text.null altPart
                 then Text.pack (takeBaseName (Text.unpack path))
                 else Text.strip (Text.drop 1 altPart)
-    in if Text.null path
-        then "{{" <> inner <> "}}"
-        else
-            "!["
-                <> Text.replace "]" "\\]" altText
-                <> "]("
-                <> renderMarkdownPath path
-                <> ")"
+     in if Text.null path
+            then "{{" <> inner <> "}}"
+            else
+                "!["
+                    <> Text.replace "]" "\\]" altText
+                    <> "]("
+                    <> renderMarkdownPath path
+                    <> ")"

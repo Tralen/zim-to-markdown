@@ -1,11 +1,11 @@
 -- | Application version sourced from the Cabal package metadata.
-module ZimToMarkdown.Version
-    ( appVersion
-    , versionText
-    ) where
+module ZimToMarkdown.Version (
+    appVersion,
+    versionText,
+) where
 
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import Data.Version (Version, showVersion)
 import Paths_zim_to_markdown (version)
 

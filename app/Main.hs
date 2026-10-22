@@ -1,58 +1,58 @@
-module Main
-    ( main
-    ) where
+module Main (
+    main,
+) where
 
 import Control.Exception (Exception, IOException, displayException, try)
-import qualified Data.ByteString as ByteString
+import Data.ByteString qualified as ByteString
 import Data.List (sort)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as TextEncoding
-import qualified Data.Text.IO as TextIO
-import System.Directory
-    ( copyFile
-    , createDirectoryIfMissing
-    , doesDirectoryExist
-    , doesFileExist
-    , listDirectory
-    , makeAbsolute
-    , pathIsSymbolicLink
-    )
+import Data.Text qualified as Text
+import Data.Text.Encoding qualified as TextEncoding
+import Data.Text.IO qualified as TextIO
+import System.Directory (
+    copyFile,
+    createDirectoryIfMissing,
+    doesDirectoryExist,
+    doesFileExist,
+    listDirectory,
+    makeAbsolute,
+    pathIsSymbolicLink,
+ )
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
-import System.FilePath
-    ( normalise
-    , splitDirectories
-    , takeDirectory
-    , takeFileName
-    , (</>)
-    )
+import System.FilePath (
+    normalise,
+    splitDirectories,
+    takeDirectory,
+    takeFileName,
+    (</>),
+ )
 import System.IO (stderr)
 
 import ZimToMarkdown.Converter (convertMarkdownDocument, convertZimPage)
-import ZimToMarkdown.Domain
-    ( ConversionDirection (..)
-    , MarkdownDocument (..)
-    , RelativePath (..)
-    , ZimPage (..)
-    )
+import ZimToMarkdown.Domain (
+    ConversionDirection (..),
+    MarkdownDocument (..),
+    RelativePath (..),
+    ZimPage (..),
+ )
 import ZimToMarkdown.Links (LinkContext (..))
-import ZimToMarkdown.Notebook
-    ( NotebookItem (..)
-    , classifyNotebookItems
-    , outputRelativePath
-    , pageRelativePaths
-    )
-import ZimToMarkdown.Options
-    ( ConversionRequest (..)
-    , InputPath (..)
-    , Options (..)
-    , OutputPath (..)
-    , helpText
-    , parseOptions
-    , renderOptionsError
-    )
+import ZimToMarkdown.Notebook (
+    NotebookItem (..),
+    classifyNotebookItems,
+    outputRelativePath,
+    pageRelativePaths,
+ )
+import ZimToMarkdown.Options (
+    ConversionRequest (..),
+    InputPath (..),
+    Options (..),
+    OutputPath (..),
+    helpText,
+    parseOptions,
+    renderOptionsError,
+ )
 import ZimToMarkdown.Paths (relativePathFrom)
 import ZimToMarkdown.Version (versionText)
 
@@ -208,8 +208,8 @@ discoverFiles root = go ""
                     then root
                     else root </> relativeDirectory
         listed <-
-            try (listDirectory directory)
-                :: IO (Either IOException [FilePath])
+            try (listDirectory directory) ::
+                IO (Either IOException [FilePath])
         case listed of
             Left exception ->
                 pure (Left (renderFileError directory exception))
@@ -231,8 +231,8 @@ discoverFiles root = go ""
                 then pure (Right [])
                 else do
                     symbolicResult <-
-                        try (pathIsSymbolicLink fullPath)
-                            :: IO (Either IOException Bool)
+                        try (pathIsSymbolicLink fullPath) ::
+                            IO (Either IOException Bool)
                     case symbolicResult of
                         Left exception ->
                             pure (Left (renderFileError fullPath exception))
@@ -259,17 +259,17 @@ isStrictlyInside parent child =
     let relative =
             normalise
                 (relativePathFrom (normalise parent) (normalise child))
-    in relative /= "."
-        && relative /= ""
-        && case splitDirectories relative of
-            (".." : _) -> False
-            _ -> True
+     in relative /= "."
+            && relative /= ""
+            && case splitDirectories relative of
+                (".." : _) -> False
+                _ -> True
 
 readUtf8File :: FilePath -> IO (Either Text Text)
 readUtf8File path = do
     readResult <-
-        try (ByteString.readFile path)
-            :: IO (Either IOException ByteString.ByteString)
+        try (ByteString.readFile path) ::
+            IO (Either IOException ByteString.ByteString)
     pure $
         case readResult of
             Left exception -> Left (renderFileError path exception)
@@ -283,8 +283,8 @@ writeUtf8File :: FilePath -> Text -> IO (Either Text ())
 writeUtf8File path content = do
     let directory = takeDirectory path
     created <-
-        try (createDirectoryIfMissing True directory)
-            :: IO (Either IOException ())
+        try (createDirectoryIfMissing True directory) ::
+            IO (Either IOException ())
     case created of
         Left exception ->
             pure (Left (renderFileError directory exception))
@@ -294,26 +294,26 @@ writeUtf8File path content = do
                     ( ByteString.writeFile
                         path
                         (TextEncoding.encodeUtf8 content)
-                    )
-                    :: IO (Either IOException ())
+                    ) ::
+                    IO (Either IOException ())
             pure (either (Left . renderFileError path) Right written)
 
 copyAsset :: FilePath -> FilePath -> IO (Either Text ())
 copyAsset source destination = do
     let directory = takeDirectory destination
     created <-
-        try (createDirectoryIfMissing True directory)
-            :: IO (Either IOException ())
+        try (createDirectoryIfMissing True directory) ::
+            IO (Either IOException ())
     case created of
         Left exception ->
             pure (Left (renderFileError directory exception))
         Right () -> do
             copied <-
-                try (copyFile source destination)
-                    :: IO (Either IOException ())
+                try (copyFile source destination) ::
+                    IO (Either IOException ())
             pure (either (Left . renderFileError destination) Right copied)
 
-renderFileError :: Exception exception => FilePath -> exception -> Text
+renderFileError :: (Exception exception) => FilePath -> exception -> Text
 renderFileError path exception =
     Text.pack path <> ": " <> Text.pack (displayException exception)
 

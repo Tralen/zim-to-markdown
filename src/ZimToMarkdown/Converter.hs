@@ -1,8 +1,8 @@
 -- | Direction-specific conversion entry points.
-module ZimToMarkdown.Converter
-    ( convertMarkdownDocument
-    , convertZimPage
-    ) where
+module ZimToMarkdown.Converter (
+    convertMarkdownDocument,
+    convertZimPage,
+) where
 
 import ZimToMarkdown.Domain (MarkdownDocument, ZimPage)
 import ZimToMarkdown.Links (LinkContext)

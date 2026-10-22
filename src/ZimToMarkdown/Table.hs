@@ -1,12 +1,12 @@
 -- | Pipe table detection and normalization for both conversion directions.
-module ZimToMarkdown.Table
-    ( isTableStart
-    , normalizeTable
-    , takeTableBlock
-    ) where
+module ZimToMarkdown.Table (
+    isTableStart,
+    normalizeTable,
+    takeTableBlock,
+) where
 
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 
 -- | Tests whether a line can start a pipe table.
 isTableStart :: Text -> Bool
@@ -25,7 +25,7 @@ takeTableBlock (header : rest)
                             ([candidate], more)
                     _ -> ([], rest)
             (body, remaining) = span isTableRow afterAlignment
-        in (header : alignment <> body, remaining)
+         in (header : alignment <> body, remaining)
 
 -- | Normalizes a Zim or Markdown table into a portable pipe table.
 normalizeTable :: [Text] -> [Text]
@@ -44,19 +44,20 @@ normalizeTable (headerLine : rest) =
                 (length headerCells : map length bodyCells)
         paddedHeader = padTo width headerCells
         paddedAlignment =
-            take width
+            take
+                width
                 (map normalizeAlignmentCell alignmentCells <> repeat "---")
         paddedBody = map (padTo width) bodyCells
-    in renderTableRow paddedHeader
-        : renderTableRow paddedAlignment
-        : map renderTableRow paddedBody
+     in renderTableRow paddedHeader
+            : renderTableRow paddedAlignment
+            : map renderTableRow paddedBody
 
 isTableRow :: Text -> Bool
 isTableRow line =
     let trimmed = Text.strip line
-    in Text.length trimmed >= 2
-        && Text.isPrefixOf "|" trimmed
-        && Text.isSuffixOf "|" trimmed
+     in Text.length trimmed >= 2
+            && Text.isPrefixOf "|" trimmed
+            && Text.isSuffixOf "|" trimmed
 
 isAlignmentLine :: Text -> Bool
 isAlignmentLine line =
@@ -66,15 +67,15 @@ isAlignmentLine line =
 isAlignmentCell :: Text -> Bool
 isAlignmentCell cell =
     let trimmed = Text.strip cell
-    in not (Text.null trimmed)
-        && Text.all (\character -> character == '-' || character == ':' || character == ' ') trimmed
-        && Text.any (== '-') trimmed
+     in not (Text.null trimmed)
+            && Text.all (\character -> character == '-' || character == ':' || character == ' ') trimmed
+            && Text.any (== '-') trimmed
 
 parseTableCells :: Text -> [Text]
 parseTableCells line =
     let trimmed = Text.strip line
         inner = Text.dropEnd 1 (Text.drop 1 trimmed)
-    in splitUnescaped '|' inner
+     in splitUnescaped '|' inner
 
 splitUnescaped :: Char -> Text -> [Text]
 splitUnescaped delimiter = go [] []
@@ -89,8 +90,7 @@ splitUnescaped delimiter = go [] []
                         go (character : '\\' : current) acc more
                     Nothing ->
                         reverse
-                            ( Text.pack (reverse ('\\' : current)) : acc
-                            )
+                            (Text.pack (reverse ('\\' : current)) : acc)
             Just (character, rest)
                 | character == delimiter ->
                     go [] (Text.pack (reverse current) : acc) rest
@@ -102,9 +102,9 @@ normalizeAlignmentCell cell =
     let trimmed = Text.strip cell
         alignedLeft = Text.isPrefixOf ":" trimmed
         alignedRight = Text.isSuffixOf ":" trimmed
-    in (if alignedLeft then ":" else "")
-        <> "---"
-        <> (if alignedRight then ":" else "")
+     in (if alignedLeft then ":" else "")
+            <> "---"
+            <> (if alignedRight then ":" else "")
 
 stripHeaderWrap :: Text -> Text
 stripHeaderWrap cell =

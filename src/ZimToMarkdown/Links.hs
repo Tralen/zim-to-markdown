@@ -1,24 +1,24 @@
 -- | Resolution of Zim links against notebook context.
-module ZimToMarkdown.Links
-    ( LinkContext (..)
-    , isExternalTarget
-    , renderZimLink
-    ) where
+module ZimToMarkdown.Links (
+    LinkContext (..),
+    isExternalTarget,
+    renderZimLink,
+) where
 
 import Data.Char (toLower)
 import Data.List (find)
 import Data.Maybe (fromMaybe)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Data.Text (Text)
-import qualified Data.Text as Text
-import System.FilePath
-    ( addExtension
-    , dropExtension
-    , normalise
-    , takeDirectory
-    , takeExtension
-    , (</>)
-    )
+import Data.Text qualified as Text
+import System.FilePath (
+    addExtension,
+    dropExtension,
+    normalise,
+    takeDirectory,
+    takeExtension,
+    (</>),
+ )
 
 import ZimToMarkdown.Domain (RelativePath (..))
 import ZimToMarkdown.Inline (renderMarkdownPath)
@@ -31,24 +31,25 @@ data LinkContext = LinkContext
     }
     deriving (Eq, Show)
 
--- | Converts the inner text of a Zim link into a Markdown link. The label
--- renderer converts inline markup inside an explicit link label.
+{- | Converts the inner text of a Zim link into a Markdown link. The label
+renderer converts inline markup inside an explicit link label.
+-}
 renderZimLink :: LinkContext -> (Text -> Text) -> Text -> Text
 renderZimLink context renderLabel rawInner =
     let inner = Text.strip rawInner
-    in if Text.null inner
-        then ""
-        else
-            let (target, label) = splitLink inner
-            in if Text.null target
-                then escapeLabel (maybe "" renderLabel label)
-                else
-                    if isExternalTarget target
-                        then renderExternal renderLabel target label
+     in if Text.null inner
+            then ""
+            else
+                let (target, label) = splitLink inner
+                 in if Text.null target
+                        then escapeLabel (maybe "" renderLabel label)
                         else
-                            if isPseudoLink target
-                                then renderPlain target label
-                                else renderInternal context renderLabel target label
+                            if isExternalTarget target
+                                then renderExternal renderLabel target label
+                                else
+                                    if isPseudoLink target
+                                        then renderPlain target label
+                                        else renderInternal context renderLabel target label
 
 -- | Tests whether a link target points outside the notebook.
 isExternalTarget :: Text -> Bool
@@ -58,8 +59,9 @@ isExternalTarget target =
         ["http://", "https://", "ftp://", "ftps://", "mailto:", "file:"]
         || "://" `Text.isInfixOf` target
 
--- | Tests whether a target looks like a user or host identifier rather than
--- a notebook page, such as an SSH destination.
+{- | Tests whether a target looks like a user or host identifier rather than
+a notebook page, such as an SSH destination.
+-}
 isPseudoLink :: Text -> Bool
 isPseudoLink target =
     "@" `Text.isInfixOf` target
@@ -73,19 +75,20 @@ renderPlain target = maybe target stripInlineVerbatim
 stripInlineVerbatim :: Text -> Text
 stripInlineVerbatim text =
     let trimmed = Text.strip text
-    in fromMaybe trimmed
-        ( Text.stripPrefix "''" trimmed
-            >>= Text.stripSuffix "''"
-        )
+     in fromMaybe
+            trimmed
+            ( Text.stripPrefix "''" trimmed
+                >>= Text.stripSuffix "''"
+            )
 
 splitLink :: Text -> (Text, Maybe Text)
 splitLink inner =
     let (target, labelWithPipe) = Text.breakOn "|" inner
-    in ( Text.strip target
-       , if Text.null labelWithPipe
+     in ( Text.strip target
+        , if Text.null labelWithPipe
             then Nothing
             else Just (Text.strip (Text.drop 1 labelWithPipe))
-       )
+        )
 
 renderExternal :: (Text -> Text) -> Text -> Maybe Text -> Text
 renderExternal renderLabel target label =
@@ -103,16 +106,16 @@ renderInternal context renderLabel target label =
             case label of
                 Just value -> renderLabel value
                 Nothing -> stripLinkPrefix target
-    in if Text.null cleanTarget
-        then escapeLabel display
-        else
-            let resolved = resolveTarget context (Text.unpack cleanTarget)
-                withAnchor = resolved <> Text.unpack anchor
-            in "["
-                <> escapeLabel display
-                <> "]("
-                <> renderMarkdownPath (Text.pack withAnchor)
-                <> ")"
+     in if Text.null cleanTarget
+            then escapeLabel display
+            else
+                let resolved = resolveTarget context (Text.unpack cleanTarget)
+                    withAnchor = resolved <> Text.unpack anchor
+                 in "["
+                        <> escapeLabel display
+                        <> "]("
+                        <> renderMarkdownPath (Text.pack withAnchor)
+                        <> ")"
 
 stripLinkPrefix :: Text -> Text
 stripLinkPrefix text =
@@ -120,7 +123,7 @@ stripLinkPrefix text =
             Text.dropWhile
                 (\character -> character == ':' || character == '+')
                 (Text.strip text)
-    in if Text.null cleaned then Text.strip text else cleaned
+     in if Text.null cleaned then Text.strip text else cleaned
 
 escapeLabel :: Text -> Text
 escapeLabel = Text.replace "]" "\\]"
@@ -140,7 +143,7 @@ resolveTarget context rawTarget =
         relativePath =
             normalise
                 (relativePathFrom currentDirectory markdownPath)
-    in toPosixPath relativePath
+     in toPosixPath relativePath
 
 targetCandidates :: FilePath -> FilePath -> FilePath -> ([FilePath], FilePath)
 targetCandidates currentPage currentDirectory target =
@@ -149,12 +152,12 @@ targetCandidates currentPage currentDirectory target =
             let rooted =
                     normalise
                         (dropLeadingSeparators (namespacePath rest))
-            in ([rooted], rooted)
+             in ([rooted], rooted)
         '+' : rest ->
             let child =
                     normalise
                         (dropExtension currentPage </> namespacePath rest)
-            in ([child], child)
+             in ([child], child)
         _ ->
             let normalizedTarget = namespacePath target
                 parents = parentDirectories currentDirectory
@@ -169,7 +172,7 @@ targetCandidates currentPage currentDirectory target =
                         else
                             normalise
                                 (currentDirectory </> normalizedTarget)
-            in (candidates, fallback)
+             in (candidates, fallback)
 
 namespacePath :: FilePath -> FilePath
 namespacePath =

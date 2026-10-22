@@ -1,19 +1,20 @@
 -- | Relative path calculations shared by link resolution and the executable.
-module ZimToMarkdown.Paths
-    ( relativePathFrom
-    , toPosixPath
-    ) where
+module ZimToMarkdown.Paths (
+    relativePathFrom,
+    toPosixPath,
+) where
 
 import System.FilePath (joinPath, normalise, splitDirectories)
 
--- | Computes the path of a target relative to a base directory, including
--- @..@ segments when the paths diverge.
+{- | Computes the path of a target relative to a base directory, including
+@..@ segments when the paths diverge.
+-}
 relativePathFrom :: FilePath -> FilePath -> FilePath
 relativePathFrom from target =
     let (fromRest, targetRest) =
             dropCommon (pathParts from) (pathParts target)
         upwards = replicate (length fromRest) ".."
-    in joinPath (upwards <> targetRest)
+     in joinPath (upwards <> targetRest)
 
 pathParts :: FilePath -> [FilePath]
 pathParts path

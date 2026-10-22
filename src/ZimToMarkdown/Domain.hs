@@ -1,10 +1,10 @@
 -- | Core immutable types used by the converter.
-module ZimToMarkdown.Domain
-    ( ConversionDirection (..)
-    , MarkdownDocument (..)
-    , RelativePath (..)
-    , ZimPage (..)
-    ) where
+module ZimToMarkdown.Domain (
+    ConversionDirection (..),
+    MarkdownDocument (..),
+    RelativePath (..),
+    ZimPage (..),
+) where
 
 import Data.Text (Text)
 import System.FilePath (FilePath)

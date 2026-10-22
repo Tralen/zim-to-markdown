@@ -38,6 +38,7 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 - [Domain model](docs/domain.md)
 - [Command line interface](docs/cli.md)
 - [Conversion rules](docs/conversion.md)
+- [Release guide](docs/releasing.md)
 - [Versioning](docs/versioning.md)
 - [Changelog](CHANGELOG.md)
 
@@ -67,9 +68,10 @@ cabal test
 
 ## Development
 
-Run the linter with:
+Run the formatter and linter with:
 
 ```sh
+fourmolu --mode check src app test
 hlint src app test
 ```
 
@@ -79,7 +81,11 @@ Install the pre-commit hook to scan staged changes for secrets:
 pre-commit install
 ```
 
-The hook requires `gitleaks` to be installed.
+The hook requires `gitleaks` to be installed. The equivalent manual command is:
+
+```sh
+gitleaks git --staged --redact
+```
 
 ## Usage
 
@@ -117,28 +123,7 @@ Run `cabal run zim-to-markdown -- --help` for the complete option list.
 
 ## Releasing
 
-Check the package and build the source and documentation distributions:
-
-```sh
-cabal check
-cabal sdist
-cabal haddock --haddock-for-hackage
-```
-
-Upload a candidate and inspect it before publishing:
-
-```sh
-cabal upload dist-newstyle/sdist/zim-to-markdown-*.tar.gz
-```
-
-Publishing is manual and requires explicit approval. After approval, publish the source package and its documentation:
-
-```sh
-cabal upload --publish dist-newstyle/sdist/zim-to-markdown-*.tar.gz
-cabal upload --publish --documentation dist-newstyle/zim-to-markdown-*-docs.tar.gz
-```
-
-Create and verify the release tag, push it, and start the `Release binaries` workflow manually. The workflow attaches the binaries, `SHA256SUMS`, and provenance attestations to the GitHub release.
+Follow the [release guide](docs/releasing.md).
 
 ## Status
 

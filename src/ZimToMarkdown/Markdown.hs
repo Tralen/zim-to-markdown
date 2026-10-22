@@ -1,34 +1,34 @@
 -- | Conversion from Markdown to Zim wiki markup.
-module ZimToMarkdown.Markdown
-    ( convertMarkdownToZim
-    ) where
+module ZimToMarkdown.Markdown (
+    convertMarkdownToZim,
+) where
 
 import Control.Applicative ((<|>))
 import Data.Char (isDigit)
 import Data.Maybe (isNothing)
 import Data.Text (Text)
-import qualified Data.Text as Text
-import System.FilePath
-    ( dropExtension
-    , isAbsolute
-    , joinPath
-    , normalise
-    , splitDirectories
-    , takeExtension
-    )
+import Data.Text qualified as Text
+import System.FilePath (
+    dropExtension,
+    isAbsolute,
+    joinPath,
+    normalise,
+    splitDirectories,
+    takeExtension,
+ )
 
 import ZimToMarkdown.Domain (MarkdownDocument (..), ZimPage (..))
-import ZimToMarkdown.Inline
-    ( breakOnFirstMarker
-    , enclosed
-    , italicBoundary
-    )
+import ZimToMarkdown.Inline (
+    breakOnFirstMarker,
+    enclosed,
+    italicBoundary,
+ )
 import ZimToMarkdown.Links (isExternalTarget)
-import ZimToMarkdown.Table
-    ( isTableStart
-    , normalizeTable
-    , takeTableBlock
-    )
+import ZimToMarkdown.Table (
+    isTableStart,
+    normalizeTable,
+    takeTableBlock,
+ )
 
 -- | Converts a Markdown document into a Zim page.
 convertMarkdownToZim :: MarkdownDocument -> ZimPage
@@ -62,31 +62,31 @@ renderBlocks = go Nothing
         , isParagraphLine line =
             let zimLevel = min level 5
                 marker = Text.replicate (7 - zimLevel) "="
-            in ( marker
+             in ( marker
                     <> " "
                     <> convertInline (Text.strip line)
                     <> " "
                     <> marker
-               )
-                : go Nothing rest
+                )
+                    : go Nothing rest
     go Nothing (line : rest)
         | Just fence <- openingFence line =
             "'''" : go (Just fence) rest
         | isTableStart line =
             let (block, remaining) = takeTableBlock (line : rest)
-            in normalizeTable block <> go Nothing remaining
+             in normalizeTable block <> go Nothing remaining
         | otherwise =
             renderLine line : go Nothing rest
 
 setextLevel :: Text -> Maybe Int
 setextLevel line =
     let trimmed = Text.strip line
-    in if not (Text.null trimmed) && Text.all (== '=') trimmed
-        then Just 1
-        else
-            if not (Text.null trimmed) && Text.all (== '-') trimmed
-                then Just 2
-                else Nothing
+     in if not (Text.null trimmed) && Text.all (== '=') trimmed
+            then Just 1
+            else
+                if not (Text.null trimmed) && Text.all (== '-') trimmed
+                    then Just 2
+                    else Nothing
 
 isParagraphLine :: Text -> Bool
 isParagraphLine line =
@@ -101,15 +101,15 @@ isParagraphLine line =
 openingFence :: Text -> Maybe Fence
 openingFence line =
     let stripped = Text.stripStart line
-    in case Text.uncons stripped of
-        Just (character, rest)
-            | character == '`' || character == '~' ->
-                let count =
-                        1 + Text.length (Text.takeWhile (== character) rest)
-                in if count >= 3
-                    then Just (Fence character count)
-                    else Nothing
-        _ -> Nothing
+     in case Text.uncons stripped of
+            Just (character, rest)
+                | character == '`' || character == '~' ->
+                    let count =
+                            1 + Text.length (Text.takeWhile (== character) rest)
+                     in if count >= 3
+                            then Just (Fence character count)
+                            else Nothing
+            _ -> Nothing
 
 isClosingFence :: Fence -> Text -> Bool
 isClosingFence fence line =
@@ -117,8 +117,8 @@ isClosingFence fence line =
         run =
             Text.length
                 (Text.takeWhile (== fenceCharacter fence) trimmed)
-    in run >= fenceLength fence
-        && Text.length trimmed == run
+     in run >= fenceLength fence
+            && Text.length trimmed == run
 
 renderLine :: Text -> Text
 renderLine line
@@ -128,7 +128,7 @@ renderLine line
     | Just (level, content) <- parseHeading line =
         let zimLevel = min level 5
             marker = Text.replicate (7 - zimLevel) "="
-        in marker <> " " <> convertInline content <> " " <> marker
+         in marker <> " " <> convertInline content <> " " <> marker
     | Just listLine <- parseListLine line =
         renderListLine listLine
     | otherwise = convertInline line
@@ -136,23 +136,23 @@ renderLine line
 isThematicBreak :: Text -> Bool
 isThematicBreak line =
     let stripped = Text.filter (/= ' ') (Text.strip line)
-    in Text.length stripped >= 3
-        && Text.all (== Text.head stripped) stripped
-        && Text.head stripped `elem` ['-', '*', '_']
+     in Text.length stripped >= 3
+            && Text.all (== Text.head stripped) stripped
+            && Text.head stripped `elem` ['-', '*', '_']
 
 parseBlockquote :: Text -> Maybe (Int, Text)
 parseBlockquote line =
     let (depth, content) = countQuotes 0 (Text.stripStart line)
-    in if depth == 0
-        then Nothing
-        else Just (depth, content)
+     in if depth == 0
+            then Nothing
+            else Just (depth, content)
   where
     countQuotes depth text =
         case Text.stripPrefix ">" text of
             Nothing -> (depth, text)
             Just after ->
                 let rest = Text.dropWhile (== ' ') after
-                in countQuotes (depth + 1) rest
+                 in countQuotes (depth + 1) rest
 
 parseHeading :: Text -> Maybe (Int, Text)
 parseHeading line =
@@ -160,24 +160,24 @@ parseHeading line =
         hashes = Text.takeWhile (== '#') stripped
         level = Text.length hashes
         after = Text.drop level stripped
-    in if level >= 1
-        && level <= 6
-        && (Text.null after || Text.isPrefixOf " " after)
-        then
-            let content = stripClosingHashes (Text.strip after)
-            in if Text.null content
-                then Nothing
-                else Just (level, content)
-        else Nothing
+     in if level >= 1
+            && level <= 6
+            && (Text.null after || Text.isPrefixOf " " after)
+            then
+                let content = stripClosingHashes (Text.strip after)
+                 in if Text.null content
+                        then Nothing
+                        else Just (level, content)
+            else Nothing
 
 stripClosingHashes :: Text -> Text
 stripClosingHashes text =
     let trimmed = Text.stripEnd text
         hashes = Text.takeWhileEnd (== '#') trimmed
         body = Text.dropEnd (Text.length hashes) trimmed
-    in if Text.null hashes || Text.null (Text.stripEnd body)
-        then trimmed
-        else Text.stripEnd body
+     in if Text.null hashes || Text.null (Text.stripEnd body)
+            then trimmed
+            else Text.stripEnd body
 
 data MarkdownListMarker
     = Bullet
@@ -194,15 +194,15 @@ data MarkdownListLine = MarkdownListLine
 parseListLine :: Text -> Maybe MarkdownListLine
 parseListLine line =
     let (indent, rest) = Text.span isIndent line
-    in case parseMarker rest of
-        Nothing -> Nothing
-        Just (marker, content) ->
-            Just
-                MarkdownListLine
-                    { markdownListIndent = indent
-                    , markdownListMarker = marker
-                    , markdownListContent = content
-                    }
+     in case parseMarker rest of
+            Nothing -> Nothing
+            Just (marker, content) ->
+                Just
+                    MarkdownListLine
+                        { markdownListIndent = indent
+                        , markdownListMarker = marker
+                        , markdownListContent = content
+                        }
   where
     isIndent character = character == ' ' || character == '\t'
 
@@ -222,20 +222,18 @@ parseMarker text
 taskChecked :: Text -> Text -> Maybe Text
 taskChecked bullet text =
     let afterBullet = Text.stripPrefix bullet text
-    in case afterBullet of
-        Just rest ->
-            Text.stripPrefix " [x] " rest <|> Text.stripPrefix " [X] " rest
-        Nothing -> Nothing
+     in case afterBullet of
+            Just rest ->
+                Text.stripPrefix " [x] " rest <|> Text.stripPrefix " [X] " rest
+            Nothing -> Nothing
 
 parseNumbered :: Text -> Maybe (MarkdownListMarker, Text)
 parseNumbered text =
     let (digits, afterDigits) = Text.span isDigit text
-    in if Text.null digits
-        then Nothing
-        else
-            case
-                Text.stripPrefix ". " afterDigits
-                    <|> Text.stripPrefix ") " afterDigits of
+     in if Text.null digits
+            then Nothing
+            else case Text.stripPrefix ". " afterDigits
+                <|> Text.stripPrefix ") " afterDigits of
                 Just rest -> Just (Numbered, rest)
                 Nothing -> Nothing
 
@@ -257,7 +255,7 @@ indentToTabs indent =
     let (spaces, rest) = Text.span (== ' ') indent
         tabs = Text.replicate (Text.length spaces `div` 2) "\t"
         leftover = Text.replicate (Text.length spaces `mod` 2) " "
-    in tabs <> leftover <> rest
+     in tabs <> leftover <> rest
 
 inlineMarkers :: [Text]
 inlineMarkers =
@@ -286,10 +284,10 @@ convertInline = go
   where
     go text =
         let (plain, marker) = breakOnFirstMarker inlineMarkers text
-        in plain
-            <> case marker of
-                Nothing -> ""
-                Just suffix -> convertMarker plain suffix
+         in plain
+                <> case marker of
+                    Nothing -> ""
+                    Just suffix -> convertMarker plain suffix
 
     convertMarker preceding text
         | Just result <- convertImage text = keep result
@@ -353,18 +351,18 @@ convertImage text = do
         else
             let path = Text.strip target
                 display = Text.strip alt
-            in if Text.null path
-                then Nothing
-                else
-                    let rendered =
-                            "{{"
-                                <> path
-                                <> ( if Text.null display
-                                        then ""
-                                        else "|" <> display
-                                   )
-                                <> "}}"
-                    in Just (rendered, Text.drop 1 afterTarget)
+             in if Text.null path
+                    then Nothing
+                    else
+                        let rendered =
+                                "{{"
+                                    <> path
+                                    <> ( if Text.null display
+                                            then ""
+                                            else "|" <> display
+                                       )
+                                    <> "}}"
+                         in Just (rendered, Text.drop 1 afterTarget)
 
 convertAnchor :: Text -> Maybe (Text, Text)
 convertAnchor text = do
@@ -383,9 +381,9 @@ convertAutolink text = do
         then Nothing
         else
             let target = Text.strip inner
-            in if isExternalTarget target
-                then Just ("[[" <> target <> "]]", Text.drop 1 after)
-                else Nothing
+             in if isExternalTarget target
+                    then Just ("[[" <> target <> "]]", Text.drop 1 after)
+                    else Nothing
 
 convertLink :: Text -> Maybe (Text, Text)
 convertLink text = do
@@ -398,25 +396,25 @@ convertLink text = do
         else
             let display = convertInline (Text.strip label)
                 zimTarget = markdownTarget (Text.strip target)
-            in if Text.null zimTarget
-                then Nothing
-                else
-                    let rendered =
-                            if Text.null display || display == zimTarget
-                                then "[[" <> zimTarget <> "]]"
-                                else
-                                    "[["
-                                        <> zimTarget
-                                        <> "|"
-                                        <> display
-                                        <> "]]"
-                    in Just (rendered, Text.drop 1 afterTarget)
+             in if Text.null zimTarget
+                    then Nothing
+                    else
+                        let rendered =
+                                if Text.null display || display == zimTarget
+                                    then "[[" <> zimTarget <> "]]"
+                                    else
+                                        "[["
+                                            <> zimTarget
+                                            <> "|"
+                                            <> display
+                                            <> "]]"
+                         in Just (rendered, Text.drop 1 afterTarget)
 
 markdownTarget :: Text -> Text
 markdownTarget rawTarget =
     let target = stripAngleBrackets rawTarget
         (pathPart, anchor) = Text.breakOn "#" target
-    in convertPath (Text.strip pathPart) <> anchor
+     in convertPath (Text.strip pathPart) <> anchor
 
 stripAngleBrackets :: Text -> Text
 stripAngleBrackets target
@@ -443,23 +441,23 @@ zimPath path =
                 then dropWhile (== "/") parts
                 else dropWhile (\part -> part == "." || part == "..") parts
         joined = joinPath cleaned
-    in if isAbsolute path then ':' : joined else joined
+     in if isAbsolute path then ':' : joined else joined
 
 convertCode :: Text -> Maybe (Text, Text)
 convertCode text =
     let (ticks, rest) = Text.span (== '`') text
         count = Text.length ticks
-    in if count == 0
-        then Nothing
-        else
-            let (inner, closing) = Text.breakOn ticks rest
-            in if Text.null inner || Text.null closing
-                then Nothing
-                else
-                    Just
-                        ( "''" <> normalizeCodeContent inner <> "''"
-                        , Text.drop count closing
-                        )
+     in if count == 0
+            then Nothing
+            else
+                let (inner, closing) = Text.breakOn ticks rest
+                 in if Text.null inner || Text.null closing
+                        then Nothing
+                        else
+                            Just
+                                ( "''" <> normalizeCodeContent inner <> "''"
+                                , Text.drop count closing
+                                )
 
 normalizeCodeContent :: Text -> Text
 normalizeCodeContent content

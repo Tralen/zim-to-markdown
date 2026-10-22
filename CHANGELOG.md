@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file. This project follows the Haskell Package Versioning Policy.
 
+## [Unreleased]
+
+### Changed
+
+- Adopted Fourmolu formatting with a pinned configuration.
+- Added Fourmolu and Gitleaks checks to CI and pinned GitHub Actions by commit SHA.
+- Added a dedicated release guide and made binary publication an explicit manual step.
+
 ## [0.3.0.1] - 2026-10-21
 
 ### Fixed

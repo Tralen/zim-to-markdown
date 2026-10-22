@@ -1,22 +1,22 @@
-module Main
-    ( main
-    ) where
+module Main (
+    main,
+) where
 
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import Data.Version (showVersion)
+import Paths_zim_to_markdown (version)
 import System.Exit (exitFailure)
 import System.FilePath ((</>))
-import Paths_zim_to_markdown (version)
 
 import ZimToMarkdown.Converter (convertMarkdownDocument, convertZimPage)
-import ZimToMarkdown.Domain
-    ( ConversionDirection (..)
-    , MarkdownDocument (..)
-    , RelativePath (..)
-    , ZimPage (..)
-    )
+import ZimToMarkdown.Domain (
+    ConversionDirection (..),
+    MarkdownDocument (..),
+    RelativePath (..),
+    ZimPage (..),
+ )
 import ZimToMarkdown.Links (LinkContext (..))
 import ZimToMarkdown.Notebook (outputRelativePath)
 import ZimToMarkdown.Version (versionText)

@@ -1,17 +1,17 @@
 -- | Command line parsing and usage messages.
-module ZimToMarkdown.Options
-    ( ConversionRequest (..)
-    , InputPath (..)
-    , Options (..)
-    , OptionsError (..)
-    , OutputPath (..)
-    , helpText
-    , parseOptions
-    , renderOptionsError
-    ) where
+module ZimToMarkdown.Options (
+    ConversionRequest (..),
+    InputPath (..),
+    Options (..),
+    OptionsError (..),
+    OutputPath (..),
+    helpText,
+    parseOptions,
+    renderOptionsError,
+) where
 
 import Data.Text (Text)
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import System.FilePath (FilePath)
 
 import ZimToMarkdown.Domain (ConversionDirection (..))
@@ -91,9 +91,9 @@ parseConversion = go emptyOptions
     go _ ["--direction"] = Left (MissingOptionValue "--direction")
     go _ ["-d"] = Left (MissingOptionValue "-d")
     go options ("--output" : value : rest) =
-        go options {partialOutput = Just value} rest
+        go options{partialOutput = Just value} rest
     go options ("-o" : value : rest) =
-        go options {partialOutput = Just value} rest
+        go options{partialOutput = Just value} rest
     go options ("--direction" : value : rest) =
         setDirection options value rest
     go options ("-d" : value : rest) =
@@ -103,14 +103,14 @@ parseConversion = go emptyOptions
         | otherwise =
             case partialInput options of
                 Nothing ->
-                    go options {partialInput = Just argument} rest
+                    go options{partialInput = Just argument} rest
                 Just _ -> Left (UnexpectedArgument (Text.pack argument))
 
     setDirection options value rest =
         case parseDirection value of
             Nothing -> Left (InvalidDirection (Text.pack value))
             Just direction ->
-                go options {partialDirection = direction} rest
+                go options{partialDirection = direction} rest
 
     isOption ('-' : _) = True
     isOption _ = False

@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: gitleaks
         name: gitleaks
-        entry: gitleaks protect --staged --redact
+        entry: gitleaks git --staged --redact
         language: system
         pass_filenames: false

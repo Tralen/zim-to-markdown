@@ -1,14 +1,14 @@
 -- | Classification and destination paths for notebook files.
-module ZimToMarkdown.Notebook
-    ( NotebookItem (..)
-    , classifyNotebookItems
-    , outputRelativePath
-    , pageRelativePaths
-    , sourcePageExtensions
-    ) where
+module ZimToMarkdown.Notebook (
+    NotebookItem (..),
+    classifyNotebookItems,
+    outputRelativePath,
+    pageRelativePaths,
+    sourcePageExtensions,
+) where
 
 import Data.Char (toLower)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import System.FilePath (replaceExtension, takeExtension)
 
 import ZimToMarkdown.Domain (ConversionDirection (..), RelativePath (..))
@@ -23,7 +23,7 @@ data NotebookItem
 classifyNotebookItems :: ConversionDirection -> [RelativePath] -> [NotebookItem]
 classifyNotebookItems direction =
     map
-        (\path ->
+        ( \path ->
             if isPagePath direction path
                 then PageItem path
                 else AssetItem path

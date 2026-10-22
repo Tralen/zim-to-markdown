@@ -7,6 +7,11 @@ on:
         description: Existing release tag to build and upload assets to
         required: true
         type: string
+      publish:
+        description: Attach artifacts, checksums, and attestations to the GitHub release
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -30,12 +35,12 @@ jobs:
             ghc: '9.14.1'
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ github.event.inputs.release_tag }}
+          ref: ${{ inputs.release_tag }}
 
       - name: Set up Haskell
-        uses: haskell-actions/setup@v2
+        uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2
         with:
           ghc-version: ${{ matrix.ghc }}
           cabal-version: '3.18.1.0'
@@ -53,7 +58,7 @@ jobs:
       - name: Package binary
         shell: bash
         env:
-          TAG_NAME: ${{ github.event.inputs.release_tag }}
+          TAG_NAME: ${{ inputs.release_tag }}
         run: |
           VERSION="${TAG_NAME#v}"
           PLATFORM="${RUNNER_OS}-${RUNNER_ARCH}"
@@ -71,22 +76,24 @@ jobs:
           echo "ASSET_PATH=dist/${ASSET}" >> "$GITHUB_ENV"
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: zim-to-markdown-${{ runner.os }}-${{ runner.arch }}
           path: ${{ env.ASSET_PATH }}
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        if: inputs.publish
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: ${{ env.ASSET_PATH }}
 
       - name: Attach to GitHub release
+        if: inputs.publish
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG_NAME: ${{ github.event.inputs.release_tag }}
+          TAG_NAME: ${{ inputs.release_tag }}
         run: |
           gh release view "$TAG_NAME" >/dev/null 2>&1 || gh release create "$TAG_NAME" --title "zim-to-markdown ${TAG_NAME#v}" --generate-notes
           gh release upload "$TAG_NAME" "$ASSET_PATH" --clobber
@@ -94,11 +101,12 @@ jobs:
   checksums:
     name: Publish checksums
     needs: build
+    if: inputs.publish
     runs-on: ubuntu-22.04
     environment: release
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: artifacts
           merge-multiple: true
@@ -114,5 +122,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG_NAME: ${{ github.event.inputs.release_tag }}
+          TAG_NAME: ${{ inputs.release_tag }}
         run: gh release upload "$TAG_NAME" artifacts/SHA256SUMS --clobber

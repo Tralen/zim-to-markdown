@@ -27,6 +27,7 @@ extra-doc-files:    CHANGELOG.md
                     docs/cli.md
                     docs/conversion.md
                     docs/domain.md
+                    docs/releasing.md
                     docs/versioning.md
 
 source-repository head
