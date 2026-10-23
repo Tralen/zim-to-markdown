@@ -135,10 +135,14 @@ renderLine line
 
 isThematicBreak :: Text -> Bool
 isThematicBreak line =
-    let stripped = Text.filter (/= ' ') (Text.strip line)
-     in Text.length stripped >= 3
-            && Text.all (== Text.head stripped) stripped
-            && Text.head stripped `elem` ['-', '*', '_']
+    case Text.uncons stripped of
+        Nothing -> False
+        Just (marker, rest) ->
+            Text.length stripped >= 3
+                && Text.all (== marker) rest
+                && marker `elem` ['-', '*', '_']
+  where
+    stripped = Text.filter (/= ' ') (Text.strip line)
 
 parseBlockquote :: Text -> Maybe (Int, Text)
 parseBlockquote line =

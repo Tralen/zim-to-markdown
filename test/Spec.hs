@@ -300,6 +300,14 @@ tests =
         (markdownToZim "---")
         "-----"
     , TestCase
+        "markdown blank line is not a thematic break"
+        (markdownToZim "")
+        ""
+    , TestCase
+        "markdown short marker run is not a thematic break"
+        (markdownToZim "--")
+        "--"
+    , TestCase
         "markdown blockquote"
         (markdownToZim "> quoted")
         "\tquoted"

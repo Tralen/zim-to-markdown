@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               zim-to-markdown
-version:            0.3.0.1
+version:            0.3.0.2
 synopsis:           Converts Zim wiki pages to Markdown and back.
 description:
     A command line converter between Zim wiki markup and Markdown.
@@ -20,7 +20,7 @@ maintainer:         Tralen <dev@tralen.cc>
 copyright:          2026 Tunai Raiol
 category:           Text
 build-type:         Simple
-tested-with:        GHC ==9.14.1
+tested-with:        GHC ==9.6.7 || ==9.14.1
 extra-doc-files:    CHANGELOG.md
                     README.md
                     docs/architecture.md
