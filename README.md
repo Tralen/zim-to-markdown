@@ -34,13 +34,13 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [Domain model](docs/domain.md)
-- [Command line interface](docs/cli.md)
-- [Conversion rules](docs/conversion.md)
-- [Release guide](docs/releasing.md)
-- [Versioning](docs/versioning.md)
-- [Changelog](CHANGELOG.md)
+- [Architecture](https://github.com/Tralen/zim-to-markdown/blob/main/docs/architecture.md)
+- [Domain model](https://github.com/Tralen/zim-to-markdown/blob/main/docs/domain.md)
+- [Command line interface](https://github.com/Tralen/zim-to-markdown/blob/main/docs/cli.md)
+- [Conversion rules](https://github.com/Tralen/zim-to-markdown/blob/main/docs/conversion.md)
+- [Release guide](https://github.com/Tralen/zim-to-markdown/blob/main/docs/releasing.md)
+- [Versioning](https://github.com/Tralen/zim-to-markdown/blob/main/docs/versioning.md)
+- [Changelog](https://github.com/Tralen/zim-to-markdown/blob/main/CHANGELOG.md)
 
 ## Installation
 
@@ -133,12 +133,12 @@ Run `zim-to-markdown --help` for the complete option list.
 
 ## Releasing
 
-Follow the [release guide](docs/releasing.md).
+Follow the [release guide](https://github.com/Tralen/zim-to-markdown/blob/main/docs/releasing.md).
 
 ## Status
 
-The converter covers headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks. Reference links, footnotes, nested links, raw HTML blocks, and Markdown indented code blocks are not converted yet. See [conversion rules](docs/conversion.md) for details and known limitations.
+The converter covers headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks. Reference links, footnotes, nested links, raw HTML blocks, and Markdown indented code blocks are not converted yet. See [conversion rules](https://github.com/Tralen/zim-to-markdown/blob/main/docs/conversion.md) for details and known limitations.
 
 ## License
 
-BSD-3-Clause. See [LICENSE](LICENSE).
+BSD-3-Clause. See [LICENSE](https://github.com/Tralen/zim-to-markdown/blob/main/LICENSE).

@@ -14,6 +14,7 @@ All notable changes to this project are documented in this file. This project fo
 
 ### Fixed
 
+- Replaced the relative documentation links in the README with absolute GitHub URLs, because Hackage drops relative links when it renders the readme. Recorded the rule in `LANGUAGE.md` and `docs/releasing.md`.
 - Removed the stale "available after the first publication" note from the README.
 
 ## [0.3.0.2] - 2026-10-23

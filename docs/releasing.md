@@ -23,7 +23,7 @@ hlint src app test
 gitleaks git --redact --log-opts="--all"
 ```
 
-Check that `dist-newstyle/sdist/` and `dist-newstyle/` contain the expected source and documentation tarballs.
+Check that `dist-newstyle/sdist/` and `dist-newstyle/` contain the expected source and documentation tarballs. Check that every link in `README.md` is absolute, because Hackage drops relative links when it renders the readme.
 
 ## Candidate
 
