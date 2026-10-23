@@ -63,6 +63,8 @@ Building from source or installing with `cabal install` requires:
 - GHC 9.14.1
 - cabal-install 3.18.1.0
 
+On Debian and Ubuntu, install the `libgmp-dev` package before building, because GHC links against GMP.
+
 The prebuilt binaries attached to the GitHub releases do not need a Haskell toolchain.
 
 ## Build and test

@@ -10,6 +10,7 @@ All notable changes to this project are documented in this file. This project fo
 
 - Documented the installed executable in the README and CLI examples, keeping `cabal run` as the development form.
 - Updated the cache, artifact, attestation, and Gitleaks actions to Node 24 releases.
+- Documented the `libgmp-dev` build prerequisite on Debian and Ubuntu.
 
 ### Fixed
 
