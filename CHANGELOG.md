@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file. This project fo
 
 ### Changed
 
+- Documented the planned domain smart constructors and the remaining conversion gaps in `docs/roadmap.md`.
 - Added a test that fails when any link target in the README is relative, so the Hackage readme keeps working, and made `directory` a test dependency.
 - Documented the installed executable in the README and CLI examples, keeping `cabal run` as the development form.
 - Updated the cache, artifact, attestation, and Gitleaks actions to Node 24 releases.

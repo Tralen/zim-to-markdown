@@ -39,6 +39,7 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 - [Command line interface](https://github.com/Tralen/zim-to-markdown/blob/main/docs/cli.md)
 - [Conversion rules](https://github.com/Tralen/zim-to-markdown/blob/main/docs/conversion.md)
 - [Release guide](https://github.com/Tralen/zim-to-markdown/blob/main/docs/releasing.md)
+- [Roadmap](https://github.com/Tralen/zim-to-markdown/blob/main/docs/roadmap.md)
 - [Versioning](https://github.com/Tralen/zim-to-markdown/blob/main/docs/versioning.md)
 - [Changelog](https://github.com/Tralen/zim-to-markdown/blob/main/CHANGELOG.md)
 
@@ -137,7 +138,7 @@ Follow the [release guide](https://github.com/Tralen/zim-to-markdown/blob/main/d
 
 ## Status
 
-The converter covers headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks. Reference links, footnotes, nested links, raw HTML blocks, and Markdown indented code blocks are not converted yet. See [conversion rules](https://github.com/Tralen/zim-to-markdown/blob/main/docs/conversion.md) for details and known limitations.
+The converter covers headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks. Reference links, footnotes, nested links, raw HTML blocks, and Markdown indented code blocks are not converted yet. See [conversion rules](https://github.com/Tralen/zim-to-markdown/blob/main/docs/conversion.md) for details and known limitations, and the [roadmap](https://github.com/Tralen/zim-to-markdown/blob/main/docs/roadmap.md) for the planned work.
 
 ## License
 
