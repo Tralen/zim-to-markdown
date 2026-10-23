@@ -8,6 +8,8 @@ zim-to-markdown --help
 zim-to-markdown --version
 ```
 
+The examples use the installed `zim-to-markdown` executable. From a repository checkout, replace `zim-to-markdown` with `cabal run zim-to-markdown --`.
+
 ## Options
 
 | Option | Meaning |
@@ -22,9 +24,9 @@ zim-to-markdown --version
 When `INPUT` is a file, the result goes to standard output unless `--output` is given. In that case `PATH` must be a file path.
 
 ```sh
-cabal run zim-to-markdown -- page.txt
-cabal run zim-to-markdown -- page.txt --output page.md
-cabal run zim-to-markdown -- --direction markdown-to-zim page.md --output page.txt
+zim-to-markdown page.txt
+zim-to-markdown page.txt --output page.md
+zim-to-markdown --direction markdown-to-zim page.md --output page.txt
 ```
 
 ## Notebooks
@@ -40,9 +42,9 @@ When `INPUT` is a directory, it is treated as a notebook. A file named `notebook
 - The output directory must not be inside the input directory.
 
 ```sh
-cabal run zim-to-markdown -- my-notebook --output my-notebook-markdown
-cabal run zim-to-markdown -- my-notebook/notebook.zim --output my-notebook-markdown
-cabal run zim-to-markdown -- --direction markdown-to-zim notes --output notes-zim
+zim-to-markdown my-notebook --output my-notebook-markdown
+zim-to-markdown my-notebook/notebook.zim --output my-notebook-markdown
+zim-to-markdown --direction markdown-to-zim notes --output notes-zim
 ```
 
 ## Exit status

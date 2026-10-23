@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file. This project fo
 
 ## [Unreleased]
 
+## [0.3.0.3] - 2026-10-23
+
+### Changed
+
+- Documented the installed executable in the README and CLI examples, keeping `cabal run` as the development form.
+- Updated the cache, artifact, attestation, and Gitleaks actions to Node 24 releases.
+
+### Fixed
+
+- Removed the stale "available after the first publication" note from the README.
+
 ## [0.3.0.2] - 2026-10-23
 
 ### Changed

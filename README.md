@@ -29,7 +29,7 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 
 ## Links
 
-- Hackage: <https://hackage.haskell.org/package/zim-to-markdown> (available after the first publication)
+- Hackage: <https://hackage.haskell.org/package/zim-to-markdown>
 - GitHub: <https://github.com/Tralen/zim-to-markdown>
 
 ## Documentation
@@ -44,11 +44,13 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 
 ## Installation
 
-After the first Hackage publication, install with:
+Install the published package from Hackage with:
 
 ```sh
 cabal install zim-to-markdown
 ```
+
+The executable is installed into the Cabal binary directory, usually `~/.cabal/bin`, which must be on `PATH`.
 
 ## Prebuilt binaries
 
@@ -56,8 +58,12 @@ Prebuilt Linux, macOS, and Windows binaries are attached to [GitHub releases](ht
 
 ## Requirements
 
+Building from source or installing with `cabal install` requires:
+
 - GHC 9.14.1
 - cabal-install 3.18.1.0
+
+The prebuilt binaries attached to the GitHub releases do not need a Haskell toolchain.
 
 ## Build and test
 
@@ -89,37 +95,39 @@ gitleaks git --staged --redact
 
 ## Usage
 
+The examples use the installed `zim-to-markdown` executable. From a repository checkout, replace `zim-to-markdown` with `cabal run zim-to-markdown --`.
+
 Convert a single Zim page to standard output:
 
 ```sh
-cabal run zim-to-markdown -- page.txt
+zim-to-markdown page.txt
 ```
 
 Convert a single page to a Markdown file:
 
 ```sh
-cabal run zim-to-markdown -- page.txt --output page.md
+zim-to-markdown page.txt --output page.md
 ```
 
 Convert a whole Zim notebook, preserving its folders:
 
 ```sh
-cabal run zim-to-markdown -- my-notebook --output my-notebook-markdown
+zim-to-markdown my-notebook --output my-notebook-markdown
 ```
 
 The notebook directory or its `notebook.zim` file can be used as input:
 
 ```sh
-cabal run zim-to-markdown -- my-notebook/notebook.zim --output my-notebook-markdown
+zim-to-markdown my-notebook/notebook.zim --output my-notebook-markdown
 ```
 
 Convert Markdown back to Zim:
 
 ```sh
-cabal run zim-to-markdown -- --direction markdown-to-zim notes --output notes-zim
+zim-to-markdown --direction markdown-to-zim notes --output notes-zim
 ```
 
-Run `cabal run zim-to-markdown -- --help` for the complete option list.
+Run `zim-to-markdown --help` for the complete option list.
 
 ## Releasing
 
