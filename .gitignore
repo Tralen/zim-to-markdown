@@ -1,10 +1,12 @@
 # Zed
 .prompt/
+.handoff/
 HANDOFF.md
 REGRESSION.md
-.handoff/
 PROMPT.md
 TODO.md
+LANGUAGE.md
+EDITORIAL.md
 
 # Secrets
 .env
