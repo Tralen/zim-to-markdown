@@ -38,7 +38,9 @@ common warnings
     ghc-options:
         -Wall
         -Wcompat
+        -Werror
         -Widentities
+        -Wincomplete-patterns
         -Wincomplete-record-updates
         -Wincomplete-uni-patterns
         -Wmissing-export-lists
@@ -94,6 +96,7 @@ test-suite zim-to-markdown-test
     build-depends:
         base              >=4.18 && <5,
         containers        >=0.6  && <0.9,
+        directory         >=1.3  && <1.4,
         filepath          >=1.4  && <1.6,
         text              >=2.0  && <2.2,
         zim-to-markdown

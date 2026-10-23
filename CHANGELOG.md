@@ -8,12 +8,15 @@ All notable changes to this project are documented in this file. This project fo
 
 ### Changed
 
+- Added a test that fails when any link target in the README is relative, so the Hackage readme keeps working, and made `directory` a test dependency.
 - Documented the installed executable in the README and CLI examples, keeping `cabal run` as the development form.
 - Updated the cache, artifact, attestation, and Gitleaks actions to Node 24 releases.
 - Documented the `libgmp-dev` build prerequisite on Debian and Ubuntu.
 
 ### Fixed
 
+- Replaced the partial `maximum` call in table normalization with a total fold.
+- Enabled `-Wincomplete-patterns` and `-Werror` in the shared build options, as `LANGUAGE.md` requires, and documented the single process failure boundary.
 - Replaced the relative documentation links in the README with absolute GitHub URLs, because Hackage drops relative links when it renders the readme. Recorded the rule in `LANGUAGE.md` and `docs/releasing.md`.
 - Removed the stale "available after the first publication" note from the README.
 

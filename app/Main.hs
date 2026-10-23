@@ -317,6 +317,9 @@ renderFileError :: (Exception exception) => FilePath -> exception -> Text
 renderFileError path exception =
     Text.pack path <> ": " <> Text.pack (displayException exception)
 
+{- | The single process boundary for expected failures: reports the message on
+stderr and exits with a nonzero status.
+-}
 failWith :: Text -> IO value
 failWith message = do
     TextIO.hPutStrLn stderr message

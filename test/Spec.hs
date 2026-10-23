@@ -5,8 +5,10 @@ module Main (
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Text.IO qualified as TextIO
 import Data.Version (showVersion)
 import Paths_zim_to_markdown (version)
+import System.Directory (doesFileExist)
 import System.Exit (exitFailure)
 import System.FilePath ((</>))
 
@@ -29,15 +31,17 @@ data TestCase = TestCase
 
 main :: IO ()
 main = do
-    let failures =
+    readmeTest <- readmeLinksTest
+    let allTests = readmeTest : tests
+        failures =
             [ test
-            | test <- tests
+            | test <- allTests
             , testExpected test /= testActual test
             ]
     if null failures
         then
             putStrLn
-                ("All " <> show (length tests) <> " tests passed.")
+                ("All " <> show (length allTests) <> " tests passed.")
         else do
             mapM_ printFailure failures
             exitFailure
@@ -47,6 +51,51 @@ printFailure test = do
     putStrLn ("FAIL: " <> testName test)
     putStrLn ("  expected: " <> show (testExpected test))
     putStrLn ("  actual:   " <> show (testActual test))
+
+{- | Checks that every link target in the readme is absolute. Hackage drops
+relative links when it renders the package page.
+-}
+readmeLinksTest :: IO TestCase
+readmeLinksTest = do
+    present <- doesFileExist readmePath
+    content <- if present then TextIO.readFile readmePath else pure ""
+    let relativeTargets =
+            [ target
+            | target <- markdownLinkTargets content
+            , not (isAbsoluteLinkTarget target)
+            ]
+        actual
+            | not present = "README.md not found"
+            | null relativeTargets = "all link targets are absolute"
+            | otherwise =
+                Text.intercalate ", " (map Text.strip relativeTargets)
+    pure
+        TestCase
+            { testName = "readme link targets are absolute"
+            , testActual = actual
+            , testExpected = "all link targets are absolute"
+            }
+  where
+    readmePath = "README.md"
+
+-- | Extracts the destination of every inline Markdown link or image.
+markdownLinkTargets :: Text -> [Text]
+markdownLinkTargets content =
+    case Text.breakOn "](" content of
+        (_, remainder)
+            | Text.null remainder -> []
+            | otherwise ->
+                let afterOpening = Text.drop 2 remainder
+                    (target, next) = Text.breakOn ")" afterOpening
+                 in target : markdownLinkTargets next
+
+isAbsoluteLinkTarget :: Text -> Bool
+isAbsoluteLinkTarget rawTarget =
+    let target = Text.strip rawTarget
+     in any
+            (`Text.isPrefixOf` target)
+            ["https://", "http://", "mailto:"]
+            || Text.isPrefixOf "#" target
 
 tests :: [TestCase]
 tests =

@@ -40,8 +40,7 @@ normalizeTable (headerLine : rest) =
                 _ -> ([], rest)
         bodyCells = map parseTableCells bodyLines
         width =
-            maximum
-                (length headerCells : map length bodyCells)
+            foldr max 0 (length headerCells : map length bodyCells)
         paddedHeader = padTo width headerCells
         paddedAlignment =
             take
