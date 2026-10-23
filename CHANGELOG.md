@@ -18,7 +18,7 @@ All notable changes to this project are documented in this file. This project fo
 
 - Replaced the partial `maximum` call in table normalization with a total fold.
 - Enabled `-Wincomplete-patterns` and `-Werror` in the shared build options, as `LANGUAGE.md` requires, and documented the single process failure boundary.
-- Replaced the relative documentation links in the README with absolute GitHub URLs, because Hackage drops relative links when it renders the readme. Recorded the rule in `LANGUAGE.md` and `docs/releasing.md`.
+- Replaced the relative documentation links in the README with absolute GitHub URLs, because Hackage resolves relative links against the package URL and they return 404 on the package page. Recorded the rule in `LANGUAGE.md` and `docs/releasing.md`.
 - Removed the stale "available after the first publication" note from the README.
 
 ## [0.3.0.2] - 2026-10-23

@@ -52,8 +52,8 @@ printFailure test = do
     putStrLn ("  expected: " <> show (testExpected test))
     putStrLn ("  actual:   " <> show (testActual test))
 
-{- | Checks that every link target in the readme is absolute. Hackage drops
-relative links when it renders the package page.
+{- | Checks that every link target in the readme is absolute. Hackage resolves
+relative links against the package URL, so they break on the package page.
 -}
 readmeLinksTest :: IO TestCase
 readmeLinksTest = do
