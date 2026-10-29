@@ -10,9 +10,9 @@ import Data.List (nub, sort)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
-import System.FilePath (takeBaseName, takeDirectory)
+import System.FilePath (takeBaseName)
 
-import ZimToMarkdown.Domain (MarkdownDocument (..), RelativePath (..), ZimPage (..))
+import ZimToMarkdown.Domain (MarkdownDocument (..), ZimPage (..))
 import ZimToMarkdown.Inline (
     breakOnFirstMarker,
     enclosed,
@@ -20,8 +20,7 @@ import ZimToMarkdown.Inline (
     renderInlineCode,
     renderMarkdownPath,
  )
-import ZimToMarkdown.Links (LinkContext (..), renderZimLink)
-import ZimToMarkdown.Paths (relativePathFrom, toPosixPath)
+import ZimToMarkdown.Links (LinkContext, renderZimLink)
 import ZimToMarkdown.Table (
     isTableStart,
     normalizeTable,
@@ -33,12 +32,12 @@ convertZimToMarkdown :: LinkContext -> ZimPage -> MarkdownDocument
 convertZimToMarkdown context =
     convertZimToMarkdownWithAssets context Map.empty
 
-{- | Converts a Zim page into Markdown, rewriting images to the collected
-assets when the notebook conversion copied them.
+{- | Converts a Zim page into Markdown, rewriting images to the targets the
+notebook conversion prepared for them.
 -}
 convertZimToMarkdownWithAssets ::
     LinkContext ->
-    Map.Map Text RelativePath ->
+    Map.Map Text Text ->
     ZimPage ->
     MarkdownDocument
 convertZimToMarkdownWithAssets context assets (ZimPage content) =
@@ -105,7 +104,7 @@ data BlockState
     | InsideVerbatim
     deriving (Eq)
 
-renderBlocks :: LinkContext -> Map.Map Text RelativePath -> Map.Map Int Int -> [Text] -> [Text]
+renderBlocks :: LinkContext -> Map.Map Text Text -> Map.Map Int Int -> [Text] -> [Text]
 renderBlocks context assets headingMap = go OutsideVerbatim
   where
     go _ [] = []
@@ -127,7 +126,7 @@ toggleState InsideVerbatim = OutsideVerbatim
 isVerbatimDelimiter :: Text -> Bool
 isVerbatimDelimiter line = Text.strip line == "'''"
 
-renderLine :: LinkContext -> Map.Map Text RelativePath -> Map.Map Int Int -> Text -> Text
+renderLine :: LinkContext -> Map.Map Text Text -> Map.Map Int Int -> Text -> Text
 renderLine context assets headingMap line
     | Text.null (Text.strip line) = line
     | Just (level, content) <- parseHeading line =
@@ -232,7 +231,7 @@ parseAlphabetic text =
                 Just (Alphabetic, rest)
         _ -> Nothing
 
-renderListLine :: LinkContext -> Map.Map Text RelativePath -> ListLine -> Text
+renderListLine :: LinkContext -> Map.Map Text Text -> ListLine -> Text
 renderListLine context assets listLine =
     indentToSpaces (listIndent listLine)
         <> prefix
@@ -273,7 +272,7 @@ inlineMarkers =
     , "^{"
     ]
 
-convertInline :: LinkContext -> Map.Map Text RelativePath -> Text -> Text
+convertInline :: LinkContext -> Map.Map Text Text -> Text -> Text
 convertInline context assets = go
   where
     go text =
@@ -320,7 +319,7 @@ convertInline context assets = go
                 (renderZimLink context (convertInline context assets))
                 text =
             keep result
-        | Just result <- enclosed "{{" "}}" (renderImage context assets) text =
+        | Just result <- enclosed "{{" "}}" (renderImage assets) text =
             keep result
         | Just result <-
             enclosed "_{" "}" (\inner -> "<sub>" <> go inner <> "</sub>") text =
@@ -342,11 +341,11 @@ renderAnchor inner =
                     <> Text.replace "\"" "&quot;" name
                     <> "\"></a>"
 
-renderImage :: LinkContext -> Map.Map Text RelativePath -> Text -> Text
-renderImage context assets inner =
+renderImage :: Map.Map Text Text -> Text -> Text
+renderImage assets inner =
     let (pathPart, altPart) = Text.breakOn "|" inner
         path = cleanImagePath pathPart
-        target = resolveImageTarget context assets path
+        target = Map.findWithDefault path path assets
         altText =
             if Text.null altPart
                 then Text.pack (takeBaseName (Text.unpack path))
@@ -365,20 +364,6 @@ cleanImagePath :: Text -> Text
 cleanImagePath rawPath =
     let trimmed = Text.strip rawPath
      in Text.strip (Text.takeWhile (/= '?') trimmed)
-
--- | Uses the copied asset when the image was collected during the conversion.
-resolveImageTarget :: LinkContext -> Map.Map Text RelativePath -> Text -> Text
-resolveImageTarget context assets path =
-    case Map.lookup path assets of
-        Nothing -> path
-        Just asset ->
-            Text.pack
-                ( toPosixPath
-                    ( relativePathFrom
-                        (takeDirectory (unRelativePath (linkCurrentPage context)))
-                        (unRelativePath asset)
-                    )
-                )
 
 {- | Lists the image paths referenced by a Zim page, without display options.
 Anchors such as @{{id: intro}}@ are not images and are ignored.

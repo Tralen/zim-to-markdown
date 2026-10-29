@@ -3,6 +3,7 @@ module Main (
 ) where
 
 import Data.Map.Strict qualified as Map
+import Data.Maybe (fromMaybe)
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -26,6 +27,13 @@ import ZimToMarkdown.Domain (
  )
 import ZimToMarkdown.Links (LinkContext (..))
 import ZimToMarkdown.Notebook (outputRelativePath)
+import ZimToMarkdown.Options (
+    ConversionRequest (..),
+    Options (..),
+    parseOptions,
+    renderOptionsError,
+ )
+import ZimToMarkdown.Paths (relativePathTo)
 import ZimToMarkdown.Version (versionText)
 import ZimToMarkdown.Zim (zimImagePaths)
 
@@ -239,12 +247,12 @@ tests =
         (zimToMarkdown "{{./pic.png?width=512}}")
         "![pic](./pic.png)"
     , TestCase
-        "zim external image uses the copied asset"
+        "zim external image uses the prepared target"
         ( zimToMarkdownWithAssets
-            (Map.singleton "~/pics/pic.png" (RelativePath ("assets" </> "pic.png")))
+            (Map.singleton "~/pics/pic.png" "../_assets/pic.png")
             "{{~/pics/pic.png?width=512}}"
         )
-        "![pic](../assets/pic.png)"
+        "![pic](../_assets/pic.png)"
     , TestCase
         "zim image targets are scanned without options or anchors"
         ( Text.intercalate
@@ -436,15 +444,61 @@ tests =
         "notebook markdown output path"
         (Text.pack (unRelativePath (outputRelativePath MarkdownToZim (RelativePath ("notes" </> "page.md")))))
         (Text.pack ("notes" </> "page.txt"))
+    , TestCase
+        "relative path leaves the base directory"
+        ( Text.pack
+            ( fromMaybe
+                "none"
+                ( relativePathTo
+                    ("/base" </> "output" </> "pages")
+                    ("/base" </> "pictures" </> "pic.png")
+                )
+            )
+        )
+        "../../pictures/pic.png"
+    , TestCase
+        "image mode defaults to copy"
+        (imageModeResult ["page.txt"])
+        "CopyImages"
+    , TestCase
+        "image mode symlink parses"
+        (imageModeResult ["--images", "symlink", "page.txt"])
+        "SymlinkImages"
+    , TestCase
+        "image mode relative parses"
+        (imageModeResult ["--images", "relative", "page.txt"])
+        "RelativeImages"
+    , TestCase
+        "invalid image mode is rejected"
+        ( optionErrorText
+            (parseOptions ["--images", "bogus", "page.txt"])
+        )
+        "Invalid image mode: bogus. Use copy, symlink or relative."
+    , TestCase
+        "missing image mode value is rejected"
+        (optionErrorText (parseOptions ["page.txt", "--images"]))
+        "Missing value for option: --images"
     ]
 
 zimToMarkdown :: Text -> Text
 zimToMarkdown = zimToMarkdownWithContext linkContext
 
-zimToMarkdownWithAssets :: Map.Map Text RelativePath -> Text -> Text
+zimToMarkdownWithAssets :: Map.Map Text Text -> Text -> Text
 zimToMarkdownWithAssets assets input =
     unMarkdownDocument
         (convertZimPageWithAssets linkContext assets (ZimPage input))
+
+imageModeResult :: [String] -> Text
+imageModeResult arguments =
+    case parseOptions arguments of
+        Left optionsError -> renderOptionsError optionsError
+        Right (Convert request) ->
+            Text.pack (show (conversionImageMode request))
+        Right ShowHelp -> "help"
+        Right ShowVersion -> "version"
+
+optionErrorText =
+    either renderOptionsError (const "unexpected success")
 
 zimToMarkdownWithContext :: LinkContext -> Text -> Text
 zimToMarkdownWithContext context input =

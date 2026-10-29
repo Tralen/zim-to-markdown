@@ -14,12 +14,14 @@ import Data.Text.IO qualified as TextIO
 import System.Directory (
     copyFile,
     createDirectoryIfMissing,
+    createFileLink,
     doesDirectoryExist,
     doesFileExist,
     getHomeDirectory,
     listDirectory,
     makeAbsolute,
     pathIsSymbolicLink,
+    removeFile,
  )
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
@@ -34,6 +36,7 @@ import System.FilePath (
     (</>),
  )
 import System.IO (stderr)
+import System.IO.Error (isDoesNotExistError)
 
 import ZimToMarkdown.Converter (
     convertMarkdownDocument,
@@ -54,6 +57,7 @@ import ZimToMarkdown.Notebook (
  )
 import ZimToMarkdown.Options (
     ConversionRequest (..),
+    ImageMode (..),
     InputPath (..),
     Options (..),
     OutputPath (..),
@@ -61,7 +65,7 @@ import ZimToMarkdown.Options (
     parseOptions,
     renderOptionsError,
  )
-import ZimToMarkdown.Paths (relativePathFrom)
+import ZimToMarkdown.Paths (relativePathFrom, relativePathTo, toPosixPath)
 import ZimToMarkdown.Version (versionText)
 import ZimToMarkdown.Zim (zimImagePaths)
 
@@ -95,7 +99,16 @@ isNotebookDefinition :: FilePath -> Bool
 isNotebookDefinition path = takeFileName path == "notebook.zim"
 
 runSingleFile :: ConversionRequest -> FilePath -> IO ()
-runSingleFile request inputPath = do
+runSingleFile request inputPath =
+    case conversionImageMode request of
+        CopyImages -> runSingleFileCopy request inputPath
+        SymlinkImages ->
+            failWith "The symlink image mode requires a notebook input."
+        RelativeImages ->
+            failWith "The relative image mode requires a notebook input."
+
+runSingleFileCopy :: ConversionRequest -> FilePath -> IO ()
+runSingleFileCopy request inputPath = do
     readResult <- readUtf8File inputPath
     case readResult of
         Left message -> failWith message
@@ -122,38 +135,42 @@ runSingleFile request inputPath = do
                                 >>= either failWith pure
 
 runNotebookRoot :: ConversionRequest -> FilePath -> IO ()
-runNotebookRoot request inputRoot =
-    case conversionOutput request of
-        Nothing ->
-            failWith
-                "An output directory is required when converting a notebook."
-        Just outputPath -> do
-            let outputRoot = unOutputPath outputPath
-            inputAbsolute <- makeAbsolute inputRoot
-            outputAbsolute <- makeAbsolute outputRoot
-            if isStrictlyInside inputAbsolute outputAbsolute
-                then
-                    failWith
-                        "The output directory must not be inside the input directory."
-                else do
-                    discovered <- discoverFiles inputRoot
-                    case discovered of
-                        Left message -> failWith message
-                        Right relativePaths -> do
-                            home <- getHomeDirectory
-                            let items =
-                                    classifyNotebookItems
-                                        (conversionDirection request)
-                                        relativePaths
-                                knownPages = pageRelativePaths items
-                            convertNotebookItems
-                                request
-                                home
-                                inputRoot
-                                outputRoot
-                                knownPages
-                                items
-                                >>= either failWith pure
+runNotebookRoot request inputRoot
+    | conversionDirection request == MarkdownToZim
+        && conversionImageMode request /= CopyImages =
+        failWith "The --images mode applies only when converting Zim to Markdown."
+    | otherwise =
+        case conversionOutput request of
+            Nothing ->
+                failWith
+                    "An output directory is required when converting a notebook."
+            Just outputPath -> do
+                let outputRoot = unOutputPath outputPath
+                inputAbsolute <- makeAbsolute inputRoot
+                outputAbsolute <- makeAbsolute outputRoot
+                if isStrictlyInside inputAbsolute outputAbsolute
+                    then
+                        failWith
+                            "The output directory must not be inside the input directory."
+                    else do
+                        discovered <- discoverFiles inputRoot
+                        case discovered of
+                            Left message -> failWith message
+                            Right relativePaths -> do
+                                home <- getHomeDirectory
+                                let items =
+                                        classifyNotebookItems
+                                            (conversionDirection request)
+                                            relativePaths
+                                    knownPages = pageRelativePaths items
+                                convertNotebookItems
+                                    request
+                                    home
+                                    inputRoot
+                                    outputAbsolute
+                                    knownPages
+                                    items
+                                    >>= either failWith pure
 
 convertNotebookItems ::
     ConversionRequest ->
@@ -165,6 +182,7 @@ convertNotebookItems ::
     IO (Either Text ())
 convertNotebookItems request home inputRoot outputRoot knownPages items = go Map.empty items
   where
+    imageMode = conversionImageMode request
     notebookAssets =
         Set.fromList [relative | AssetItem relative <- items]
 
@@ -197,10 +215,18 @@ convertNotebookItems request home inputRoot outputRoot knownPages items = go Map
                         case conversionDirection request of
                             ZimToMarkdown -> zimImagePaths (ZimPage content)
                             MarkdownToZim -> []
-                copied <- copyExternalImages home outputRoot notebookAssets assetMap externalImages
-                case copied of
+                prepared <-
+                    preparePageImages
+                        imageMode
+                        home
+                        outputRoot
+                        notebookAssets
+                        assetMap
+                        destinationRelative
+                        externalImages
+                case prepared of
                     Left message -> pure (Left message)
-                    Right assetMap' -> do
+                    Right (assetMap', imageTargets) -> do
                         let context =
                                 LinkContext
                                     { linkCurrentPage = sourceRelative
@@ -210,7 +236,7 @@ convertNotebookItems request home inputRoot outputRoot knownPages items = go Map
                                 convertContent
                                     (conversionDirection request)
                                     context
-                                    assetMap'
+                                    imageTargets
                                     content
                         written <- writeUtf8File destinationPath rendered
                         pure (assetMap' <$ written)
@@ -220,44 +246,119 @@ convertNotebookItems request home inputRoot outputRoot knownPages items = go Map
             destinationPath = outputRoot </> unRelativePath relative
         copyAsset sourcePath destinationPath
 
-{- | Copies images referenced outside the notebook, such as @~/pics/a.png@,
-into the output @assets@ directory and records the rewritten target.
+{- | Prepares the external images of one page. Copy and symlink modes create
+the asset under @_assets@ and return per-page targets; relative mode returns a
+target that points to the original file with @..@ segments. Missing sources are
+left untouched.
 -}
-copyExternalImages ::
+preparePageImages ::
+    ImageMode ->
     FilePath ->
     FilePath ->
     Set.Set RelativePath ->
     Map.Map Text RelativePath ->
+    RelativePath ->
     [Text] ->
-    IO (Either Text (Map.Map Text RelativePath))
-copyExternalImages home outputRoot reserved initialPaths = go (Right initialPaths)
+    IO (Either Text (Map.Map Text RelativePath, Map.Map Text Text))
+preparePageImages imageMode home outputRoot reserved initialAssets pageRelative =
+    go (Right (initialAssets, Map.empty))
   where
+    pageDirectory =
+        takeDirectory (outputRoot </> unRelativePath pageRelative)
+    pageOutputDirectory =
+        takeDirectory (unRelativePath pageRelative)
+
+    go ::
+        Either Text (Map.Map Text RelativePath, Map.Map Text Text) ->
+        [Text] ->
+        IO (Either Text (Map.Map Text RelativePath, Map.Map Text Text))
     go result [] = pure result
     go (Left message) (_ : _) = pure (Left message)
-    go (Right assetMap) (path : rest)
-        | Map.member path assetMap = go (Right assetMap) rest
+    go (Right (assets, targets)) (path : rest)
+        | Map.member path targets = go (Right (assets, targets)) rest
         | otherwise =
             case resolveExternalImage home path of
-                Nothing -> go (Right assetMap) rest
+                Nothing -> go (Right (assets, targets)) rest
                 Just source -> do
                     exists <- doesFileExist source
                     if exists
-                        then do
-                            let used =
-                                    reserved
-                                        <> Set.fromList (Map.elems assetMap)
-                                destination =
-                                    chooseAssetPath used (takeFileName source)
-                                destinationPath =
-                                    outputRoot </> unRelativePath destination
-                            copied <- copyAsset source destinationPath
-                            case copied of
-                                Left message -> pure (Left message)
-                                Right () ->
-                                    go
-                                        (Right (Map.insert path destination assetMap))
-                                        rest
-                        else go (Right assetMap) rest
+                        then case imageMode of
+                            RelativeImages ->
+                                relativeStep assets targets source path rest
+                            CopyImages ->
+                                assetStep CopyImages assets targets source path rest
+                            SymlinkImages ->
+                                assetStep SymlinkImages assets targets source path rest
+                        else go (Right (assets, targets)) rest
+
+    relativeStep ::
+        Map.Map Text RelativePath ->
+        Map.Map Text Text ->
+        FilePath ->
+        Text ->
+        [Text] ->
+        IO (Either Text (Map.Map Text RelativePath, Map.Map Text Text))
+    relativeStep assets targets source path rest =
+        case relativePathTo pageDirectory source of
+            Nothing ->
+                pure
+                    ( Left
+                        ( "Cannot express a relative image path from "
+                            <> Text.pack pageDirectory
+                            <> " to "
+                            <> Text.pack source
+                            <> "."
+                        )
+                    )
+            Just target ->
+                go
+                    (Right (assets, Map.insert path (Text.pack target) targets))
+                    rest
+
+    assetStep ::
+        ImageMode ->
+        Map.Map Text RelativePath ->
+        Map.Map Text Text ->
+        FilePath ->
+        Text ->
+        [Text] ->
+        IO (Either Text (Map.Map Text RelativePath, Map.Map Text Text))
+    assetStep mode assets targets source path rest =
+        case Map.lookup path assets of
+            Just destination ->
+                go
+                    (Right (assets, Map.insert path (targetFor destination) targets))
+                    rest
+            Nothing -> do
+                let used = reserved <> Set.fromList (Map.elems assets)
+                    destination = chooseAssetPath used (takeFileName source)
+                    destinationPath =
+                        outputRoot </> unRelativePath destination
+                created <-
+                    case mode of
+                        CopyImages -> copyAsset source destinationPath
+                        SymlinkImages -> createSymlink source destinationPath
+                        RelativeImages -> pure (Right ())
+                case created of
+                    Left message -> pure (Left message)
+                    Right () ->
+                        go
+                            ( Right
+                                ( Map.insert path destination assets
+                                , Map.insert path (targetFor destination) targets
+                                )
+                            )
+                            rest
+
+    targetFor :: RelativePath -> Text
+    targetFor destination =
+        Text.pack
+            ( toPosixPath
+                ( relativePathFrom
+                    pageOutputDirectory
+                    (unRelativePath destination)
+                )
+            )
 
 resolveExternalImage :: FilePath -> Text -> Maybe FilePath
 resolveExternalImage home path
@@ -267,11 +368,38 @@ resolveExternalImage home path
     | isAbsolute (Text.unpack path) = Just (Text.unpack path)
     | otherwise = Nothing
 
+createSymlink :: FilePath -> FilePath -> IO (Either Text ())
+createSymlink source destination = do
+    let directory = takeDirectory destination
+    created <-
+        try (createDirectoryIfMissing True directory) ::
+            IO (Either IOException ())
+    case created of
+        Left exception -> pure (Left (renderFileError directory exception))
+        Right () -> do
+            removed <- removeIfPresent destination
+            case removed of
+                Left message -> pure (Left message)
+                Right () -> do
+                    linked <-
+                        try (createFileLink source destination) ::
+                            IO (Either IOException ())
+                    pure (either (Left . renderFileError destination) Right linked)
+
+removeIfPresent :: FilePath -> IO (Either Text ())
+removeIfPresent path = do
+    removed <- try (removeFile path) :: IO (Either IOException ())
+    case removed of
+        Left exception
+            | isDoesNotExistError exception -> pure (Right ())
+            | otherwise -> pure (Left (renderFileError path exception))
+        Right () -> pure (Right ())
+
 chooseAssetPath :: Set.Set RelativePath -> FilePath -> RelativePath
 chooseAssetPath used = go 2
   where
     go attempt candidate =
-        let relative = RelativePath ("assets" </> candidate)
+        let relative = RelativePath ("_assets" </> candidate)
          in if Set.member relative used
                 then go (attempt + 1) (numbered attempt candidate)
                 else relative
@@ -284,7 +412,7 @@ chooseAssetPath used = go 2
 convertContent ::
     ConversionDirection ->
     LinkContext ->
-    Map.Map Text RelativePath ->
+    Map.Map Text Text ->
     Text ->
     Text
 convertContent direction context assets content =

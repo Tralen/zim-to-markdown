@@ -14,7 +14,7 @@ The project is split into a pure library and a thin executable. All effects live
 | `ZimToMarkdown.Inline` | Shared inline scanning helpers. |
 | `ZimToMarkdown.Table` | Shared pipe table detection and normalization. |
 | `ZimToMarkdown.Notebook` | Pure classification of notebook files and destination paths. |
-| `ZimToMarkdown.Paths` | Pure relative path calculation. |
+| `ZimToMarkdown.Paths` | Pure relative path calculation for targets inside and outside the output. |
 | `ZimToMarkdown.Options` | Pure command line parsing and user facing messages. |
 | `ZimToMarkdown.Version` | Application version sourced from the Cabal package metadata. |
 | `Main` | Effect boundary: filesystem discovery, reading, writing, and exit codes. |
@@ -43,7 +43,7 @@ Parsing, conversion, link resolution, path calculation, table normalization, and
 
 ## Notebook behavior
 
-For a notebook, the executable discovers every file and classifies it as a page or an asset. The input can be the notebook directory or its `notebook.zim` file; the definition file itself is never copied. Pages are converted to the target extension and assets are copied unchanged. Images that pages reference outside the notebook with `~` or an absolute path are copied into an `assets` directory in the output and the links are rewritten relative to each page; missing images are left as written. Internal links are resolved against the set of discovered pages, so links keep pointing to the converted pages. Hidden files, symbolic links, and empty directories are skipped.
+For a notebook, the executable discovers every file and classifies it as a page or an asset. The input can be the notebook directory or its `notebook.zim` file; the definition file itself is never copied. Pages are converted to the target extension and assets are copied unchanged. Images that pages reference outside the notebook with `~` or an absolute path follow `--images`: `copy` copies them into `_assets`, `symlink` creates absolute symlinks there, and `relative` links to the originals with `..`. Links are rewritten relative to each page; missing images are left as written. Internal links are resolved against the set of discovered pages, so links keep pointing to the converted pages. Hidden files, symbolic links, and empty directories in the input are skipped; the `symlink` mode creates its links in the output after discovery.
 
 ## Evolution
 

@@ -1,6 +1,6 @@
 # Versioning
 
-The project follows the Package Version Policy with four components: `major.minor.patch.revision`. The current version is `0.3.0.4`.
+The project follows the Package Version Policy with four components: `major.minor.patch.revision`. The current version is `0.3.1.0`.
 
 ## Source of truth
 

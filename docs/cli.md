@@ -16,6 +16,7 @@ The examples use the installed `zim-to-markdown` executable. From a repository c
 | --- | --- |
 | `-d DIRECTION`, `--direction DIRECTION` | `zim-to-markdown` (default) or `markdown-to-zim`. |
 | `-o PATH`, `--output PATH` | Output file for a single page; output directory for a notebook. |
+| `--images MODE` | External images: `copy` (default), `symlink` or `relative`; notebook conversion only. |
 | `-h`, `--help` | Show usage information. |
 | `-V`, `--version` | Show the application version. |
 
@@ -35,12 +36,14 @@ When `INPUT` is a directory, it is treated as a notebook. A file named `notebook
 
 - Page files are converted to the target extension (`.txt` to `.md`, or `.md` and `.markdown` to `.txt`).
 - Other files are copied unchanged, preserving their relative paths.
-- Images referenced outside the notebook with `~` or an absolute path are copied into `assets/` and linked relative to each page; missing images are left as written.
+- Images referenced outside the notebook with `~` or an absolute path follow `--images`: `copy` stores them in `_assets/`, `symlink` stores absolute symbolic links in `_assets/`, and `relative` links to the originals with `..` segments. Links are written relative to each page; missing images are left as written.
 - The root `notebook.zim` file is treated as metadata and is not copied.
 - Internal links are resolved using every page found in the notebook.
 - Hidden files and symbolic links are skipped.
 - Empty directories are not recreated.
 - The output directory must not be inside the input directory.
+
+`symlink` and `relative` require a notebook input. `markdown-to-zim` accepts only `copy`. The generated `_assets/` directory is reserved for external images; assets inside the notebook keep their own paths.
 
 ```sh
 zim-to-markdown my-notebook --output my-notebook-markdown

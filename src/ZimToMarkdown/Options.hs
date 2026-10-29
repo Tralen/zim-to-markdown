@@ -1,6 +1,7 @@
 -- | Command line parsing and usage messages.
 module ZimToMarkdown.Options (
     ConversionRequest (..),
+    ImageMode (..),
     InputPath (..),
     Options (..),
     OptionsError (..),
@@ -15,6 +16,13 @@ import Data.Text qualified as Text
 import System.FilePath (FilePath)
 
 import ZimToMarkdown.Domain (ConversionDirection (..))
+
+-- | How images referenced outside the notebook are handled.
+data ImageMode
+    = CopyImages
+    | SymlinkImages
+    | RelativeImages
+    deriving (Eq, Show)
 
 -- | Path of the Zim page or notebook to read.
 newtype InputPath = InputPath
@@ -33,6 +41,7 @@ data ConversionRequest = ConversionRequest
     { conversionInput :: InputPath
     , conversionOutput :: Maybe OutputPath
     , conversionDirection :: ConversionDirection
+    , conversionImageMode :: ImageMode
     }
     deriving (Eq, Show)
 
@@ -50,6 +59,7 @@ data OptionsError
     | MissingOptionValue Text
     | UnexpectedArgument Text
     | InvalidDirection Text
+    | InvalidImageMode Text
     deriving (Eq, Show)
 
 -- | Parses command line arguments without performing any input or output.
@@ -63,6 +73,7 @@ data PartialOptions = PartialOptions
     { partialInput :: Maybe FilePath
     , partialOutput :: Maybe FilePath
     , partialDirection :: ConversionDirection
+    , partialImageMode :: ImageMode
     }
 
 emptyOptions :: PartialOptions
@@ -71,6 +82,7 @@ emptyOptions =
         { partialInput = Nothing
         , partialOutput = Nothing
         , partialDirection = ZimToMarkdown
+        , partialImageMode = CopyImages
         }
 
 parseConversion :: [String] -> Either OptionsError ConversionRequest
@@ -85,11 +97,13 @@ parseConversion = go emptyOptions
                         { conversionInput = InputPath path
                         , conversionOutput = OutputPath <$> partialOutput options
                         , conversionDirection = partialDirection options
+                        , conversionImageMode = partialImageMode options
                         }
     go _ ["--output"] = Left (MissingOptionValue "--output")
     go _ ["-o"] = Left (MissingOptionValue "-o")
     go _ ["--direction"] = Left (MissingOptionValue "--direction")
     go _ ["-d"] = Left (MissingOptionValue "-d")
+    go _ ["--images"] = Left (MissingOptionValue "--images")
     go options ("--output" : value : rest) =
         go options{partialOutput = Just value} rest
     go options ("-o" : value : rest) =
@@ -98,6 +112,8 @@ parseConversion = go emptyOptions
         setDirection options value rest
     go options ("-d" : value : rest) =
         setDirection options value rest
+    go options ("--images" : value : rest) =
+        setImageMode options value rest
     go options (argument : rest)
         | isOption argument = Left (UnknownOption (Text.pack argument))
         | otherwise =
@@ -112,6 +128,12 @@ parseConversion = go emptyOptions
             Just direction ->
                 go options{partialDirection = direction} rest
 
+    setImageMode options value rest =
+        case parseImageMode value of
+            Nothing -> Left (InvalidImageMode (Text.pack value))
+            Just imageMode ->
+                go options{partialImageMode = imageMode} rest
+
     isOption ('-' : _) = True
     isOption _ = False
 
@@ -120,6 +142,14 @@ parseDirection value =
     case value of
         "zim-to-markdown" -> Just ZimToMarkdown
         "markdown-to-zim" -> Just MarkdownToZim
+        _ -> Nothing
+
+parseImageMode :: String -> Maybe ImageMode
+parseImageMode value =
+    case value of
+        "copy" -> Just CopyImages
+        "symlink" -> Just SymlinkImages
+        "relative" -> Just RelativeImages
         _ -> Nothing
 
 -- | Renders an option parsing failure as a user facing message.
@@ -134,6 +164,10 @@ renderOptionsError optionsError =
             "Invalid direction: "
                 <> direction
                 <> ". Use zim-to-markdown or markdown-to-zim."
+        InvalidImageMode imageMode ->
+            "Invalid image mode: "
+                <> imageMode
+                <> ". Use copy, symlink or relative."
 
 -- | Command line usage description.
 helpText :: Text
@@ -149,6 +183,7 @@ helpText =
         , "Options:"
         , "  -d, --direction DIRECTION  zim-to-markdown (default) or markdown-to-zim."
         , "  -o, --output PATH          Output file for a page; output directory for a notebook."
+        , "      --images MODE          External images: copy (default), symlink or relative."
         , "  -h, --help                 Show this help."
         , "  -V, --version              Show the application version."
         , ""
