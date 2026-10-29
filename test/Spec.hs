@@ -2,6 +2,7 @@ module Main (
     main,
 ) where
 
+import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -12,7 +13,11 @@ import System.Directory (doesFileExist)
 import System.Exit (exitFailure)
 import System.FilePath ((</>))
 
-import ZimToMarkdown.Converter (convertMarkdownDocument, convertZimPage)
+import ZimToMarkdown.Converter (
+    convertMarkdownDocument,
+    convertZimPage,
+    convertZimPageWithAssets,
+ )
 import ZimToMarkdown.Domain (
     ConversionDirection (..),
     MarkdownDocument (..),
@@ -22,6 +27,7 @@ import ZimToMarkdown.Domain (
 import ZimToMarkdown.Links (LinkContext (..))
 import ZimToMarkdown.Notebook (outputRelativePath)
 import ZimToMarkdown.Version (versionText)
+import ZimToMarkdown.Zim (zimImagePaths)
 
 data TestCase = TestCase
     { testName :: String
@@ -229,6 +235,24 @@ tests =
         (zimToMarkdown "{{./pic.png|A picture}}")
         "![A picture](./pic.png)"
     , TestCase
+        "zim image width option is removed"
+        (zimToMarkdown "{{./pic.png?width=512}}")
+        "![pic](./pic.png)"
+    , TestCase
+        "zim external image uses the copied asset"
+        ( zimToMarkdownWithAssets
+            (Map.singleton "~/pics/pic.png" (RelativePath ("assets" </> "pic.png")))
+            "{{~/pics/pic.png?width=512}}"
+        )
+        "![pic](../assets/pic.png)"
+    , TestCase
+        "zim image targets are scanned without options or anchors"
+        ( Text.intercalate
+            ", "
+            (zimImagePaths (ZimPage "{{~/a.png?width=1}} {{id: x}} {{b.png|alt}}"))
+        )
+        "~/a.png, b.png"
+    , TestCase
         "zim anchor"
         (zimToMarkdown "{{id: intro}}")
         "<a id=\"intro\"></a>"
@@ -416,6 +440,11 @@ tests =
 
 zimToMarkdown :: Text -> Text
 zimToMarkdown = zimToMarkdownWithContext linkContext
+
+zimToMarkdownWithAssets :: Map.Map Text RelativePath -> Text -> Text
+zimToMarkdownWithAssets assets input =
+    unMarkdownDocument
+        (convertZimPageWithAssets linkContext assets (ZimPage input))
 
 zimToMarkdownWithContext :: LinkContext -> Text -> Text
 zimToMarkdownWithContext context input =

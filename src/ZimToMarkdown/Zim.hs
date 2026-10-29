@@ -1,6 +1,8 @@
 -- | Conversion from Zim wiki markup to Markdown.
 module ZimToMarkdown.Zim (
     convertZimToMarkdown,
+    convertZimToMarkdownWithAssets,
+    zimImagePaths,
 ) where
 
 import Data.Char (isAlpha, isDigit)
@@ -8,9 +10,9 @@ import Data.List (nub, sort)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
-import System.FilePath (takeBaseName)
+import System.FilePath (takeBaseName, takeDirectory)
 
-import ZimToMarkdown.Domain (MarkdownDocument (..), ZimPage (..))
+import ZimToMarkdown.Domain (MarkdownDocument (..), RelativePath (..), ZimPage (..))
 import ZimToMarkdown.Inline (
     breakOnFirstMarker,
     enclosed,
@@ -18,7 +20,8 @@ import ZimToMarkdown.Inline (
     renderInlineCode,
     renderMarkdownPath,
  )
-import ZimToMarkdown.Links (LinkContext, renderZimLink)
+import ZimToMarkdown.Links (LinkContext (..), renderZimLink)
+import ZimToMarkdown.Paths (relativePathFrom, toPosixPath)
 import ZimToMarkdown.Table (
     isTableStart,
     normalizeTable,
@@ -27,7 +30,18 @@ import ZimToMarkdown.Table (
 
 -- | Converts a Zim page into Markdown.
 convertZimToMarkdown :: LinkContext -> ZimPage -> MarkdownDocument
-convertZimToMarkdown context (ZimPage content) =
+convertZimToMarkdown context =
+    convertZimToMarkdownWithAssets context Map.empty
+
+{- | Converts a Zim page into Markdown, rewriting images to the collected
+assets when the notebook conversion copied them.
+-}
+convertZimToMarkdownWithAssets ::
+    LinkContext ->
+    Map.Map Text RelativePath ->
+    ZimPage ->
+    MarkdownDocument
+convertZimToMarkdownWithAssets context assets (ZimPage content) =
     let lines =
             Text.splitOn
                 "\n"
@@ -36,7 +50,7 @@ convertZimToMarkdown context (ZimPage content) =
      in MarkdownDocument
             ( Text.intercalate
                 "\n"
-                (renderBlocks context headingMap lines)
+                (renderBlocks context assets headingMap lines)
             )
 
 stripZimHeader :: Text -> Text
@@ -91,8 +105,8 @@ data BlockState
     | InsideVerbatim
     deriving (Eq)
 
-renderBlocks :: LinkContext -> Map.Map Int Int -> [Text] -> [Text]
-renderBlocks context headingMap = go OutsideVerbatim
+renderBlocks :: LinkContext -> Map.Map Text RelativePath -> Map.Map Int Int -> [Text] -> [Text]
+renderBlocks context assets headingMap = go OutsideVerbatim
   where
     go _ [] = []
     go state (line : rest)
@@ -104,7 +118,7 @@ renderBlocks context headingMap = go OutsideVerbatim
             let (block, remaining) = takeTableBlock (line : rest)
              in normalizeTable block <> go OutsideVerbatim remaining
         | otherwise =
-            renderLine context headingMap line : go OutsideVerbatim rest
+            renderLine context assets headingMap line : go OutsideVerbatim rest
 
 toggleState :: BlockState -> BlockState
 toggleState OutsideVerbatim = InsideVerbatim
@@ -113,22 +127,22 @@ toggleState InsideVerbatim = OutsideVerbatim
 isVerbatimDelimiter :: Text -> Bool
 isVerbatimDelimiter line = Text.strip line == "'''"
 
-renderLine :: LinkContext -> Map.Map Int Int -> Text -> Text
-renderLine context headingMap line
+renderLine :: LinkContext -> Map.Map Text RelativePath -> Map.Map Int Int -> Text -> Text
+renderLine context assets headingMap line
     | Text.null (Text.strip line) = line
     | Just (level, content) <- parseHeading line =
         let markdownLevel =
                 min 3 (Map.findWithDefault level level headingMap)
          in Text.replicate markdownLevel "#"
                 <> " "
-                <> convertInline context content
+                <> convertInline context assets content
     | isHorizontalRule line = "---"
     | Just listLine <- parseListLine line =
-        renderListLine context listLine
+        renderListLine context assets listLine
     | Just (depth, content) <- parseIndentedBlock line =
         Text.replicate depth "> "
-            <> renderLine context headingMap content
-    | otherwise = convertInline context line
+            <> renderLine context assets headingMap content
+    | otherwise = convertInline context assets line
 
 isHorizontalRule :: Text -> Bool
 isHorizontalRule line =
@@ -218,11 +232,11 @@ parseAlphabetic text =
                 Just (Alphabetic, rest)
         _ -> Nothing
 
-renderListLine :: LinkContext -> ListLine -> Text
-renderListLine context listLine =
+renderListLine :: LinkContext -> Map.Map Text RelativePath -> ListLine -> Text
+renderListLine context assets listLine =
     indentToSpaces (listIndent listLine)
         <> prefix
-        <> convertInline context (listContent listLine)
+        <> convertInline context assets (listContent listLine)
   where
     prefix =
         case listMarker listLine of
@@ -259,8 +273,8 @@ inlineMarkers =
     , "^{"
     ]
 
-convertInline :: LinkContext -> Text -> Text
-convertInline context = go
+convertInline :: LinkContext -> Map.Map Text RelativePath -> Text -> Text
+convertInline context assets = go
   where
     go text =
         let (plain, marker) = breakOnFirstMarker inlineMarkers text
@@ -303,10 +317,10 @@ convertInline context = go
             enclosed
                 "[["
                 "]]"
-                (renderZimLink context (convertInline context))
+                (renderZimLink context (convertInline context assets))
                 text =
             keep result
-        | Just result <- enclosed "{{" "}}" renderImage text =
+        | Just result <- enclosed "{{" "}}" (renderImage context assets) text =
             keep result
         | Just result <-
             enclosed "_{" "}" (\inner -> "<sub>" <> go inner <> "</sub>") text =
@@ -328,10 +342,11 @@ renderAnchor inner =
                     <> Text.replace "\"" "&quot;" name
                     <> "\"></a>"
 
-renderImage :: Text -> Text
-renderImage inner =
+renderImage :: LinkContext -> Map.Map Text RelativePath -> Text -> Text
+renderImage context assets inner =
     let (pathPart, altPart) = Text.breakOn "|" inner
-        path = Text.strip pathPart
+        path = cleanImagePath pathPart
+        target = resolveImageTarget context assets path
         altText =
             if Text.null altPart
                 then Text.pack (takeBaseName (Text.unpack path))
@@ -342,5 +357,49 @@ renderImage inner =
                 "!["
                     <> Text.replace "]" "\\]" altText
                     <> "]("
-                    <> renderMarkdownPath path
+                    <> renderMarkdownPath target
                     <> ")"
+
+{- | Removes the Zim display options, such as @?width=512@, from an image path.
+-}
+cleanImagePath :: Text -> Text
+cleanImagePath rawPath =
+    let trimmed = Text.strip rawPath
+     in Text.strip (Text.takeWhile (/= '?') trimmed)
+
+{- | Uses the copied asset when the image was collected during the conversion.
+-}
+resolveImageTarget :: LinkContext -> Map.Map Text RelativePath -> Text -> Text
+resolveImageTarget context assets path =
+    case Map.lookup path assets of
+        Nothing -> path
+        Just asset ->
+            Text.pack
+                ( toPosixPath
+                    ( relativePathFrom
+                        (takeDirectory (unRelativePath (linkCurrentPage context)))
+                        (unRelativePath asset)
+                    )
+                )
+
+{- | Lists the image paths referenced by a Zim page, without display options.
+Anchors such as @{{id: intro}}@ are not images and are ignored.
+-}
+zimImagePaths :: ZimPage -> [Text]
+zimImagePaths (ZimPage content) = go content
+  where
+    go text =
+        case Text.breakOn "{{" text of
+            (_, rest)
+                | Text.null rest -> []
+                | otherwise ->
+                    let afterOpening = Text.drop 2 rest
+                        (inner, closing) = Text.breakOn "}}" afterOpening
+                        remaining = Text.drop 2 closing
+                        path = cleanImagePath (Text.takeWhile (/= '|') inner)
+                     in if Text.null closing
+                            then []
+                            else
+                                if Text.isPrefixOf "id:" (Text.strip inner) || Text.null path
+                                    then go remaining
+                                    else path : go remaining

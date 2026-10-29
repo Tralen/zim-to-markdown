@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               zim-to-markdown
-version:            0.3.0.3
+version:            0.3.0.4
 synopsis:           Converts Zim wiki pages to Markdown and back.
 description:
     A command line converter between Zim wiki markup and Markdown.

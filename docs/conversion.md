@@ -37,6 +37,8 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 
 Leading Zim metadata header lines (`Content-Type`, `Wiki-Format`, `Creation-Date`, `Modification-Date`) are removed. Heading levels are normalized per page: distinct Zim levels are compressed into consecutive Markdown levels starting at `#` and capped at `###`. A pipe table without an alignment row receives a default alignment row.
 
+Image targets lose Zim display options such as `?width=512`, because Markdown has no equivalent and the option is not part of the file name. When converting a notebook from Zim to Markdown, an image referenced with `~` or with an absolute path is copied to the `assets` directory of the output and linked relative to each page, so the generated notebook is self-contained; missing files keep the cleaned target.
+
 Colons in internal link targets are translated to path separators, so `[[Sistema:cron]]` points to `Sistema/cron.md`. Targets that look like `user@host` are rendered as plain text instead of page links.
 
 ## Markdown to Zim

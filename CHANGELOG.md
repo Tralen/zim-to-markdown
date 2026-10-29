@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file. This project fo
 
 ## [Unreleased]
 
+## [0.3.0.4] - 2026-10-29
+
+### Fixed
+
+- Stripped Zim image display options such as `?width=512` from Markdown image targets.
+- Copied images referenced outside the notebook with `~` or an absolute path into the output `assets` directory and rewrote the links relative to each page, so the images open in Markdown editors.
+
+### Changed
+
+- The converter exposes `convertZimPageWithAssets` so the executable can pass the collected image map, and `ZimToMarkdown.Zim` exports the image target scanner.
+
 ## [0.3.0.3] - 2026-10-23
 
 ### Changed

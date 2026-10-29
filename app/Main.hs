@@ -5,6 +5,7 @@ module Main (
 import Control.Exception (Exception, IOException, displayException, try)
 import Data.ByteString qualified as ByteString
 import Data.List (sort)
+import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -15,6 +16,7 @@ import System.Directory (
     createDirectoryIfMissing,
     doesDirectoryExist,
     doesFileExist,
+    getHomeDirectory,
     listDirectory,
     makeAbsolute,
     pathIsSymbolicLink,
@@ -22,15 +24,21 @@ import System.Directory (
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.FilePath (
+    isAbsolute,
     normalise,
     splitDirectories,
+    takeBaseName,
     takeDirectory,
+    takeExtension,
     takeFileName,
     (</>),
  )
 import System.IO (stderr)
 
-import ZimToMarkdown.Converter (convertMarkdownDocument, convertZimPage)
+import ZimToMarkdown.Converter (
+    convertMarkdownDocument,
+    convertZimPageWithAssets,
+ )
 import ZimToMarkdown.Domain (
     ConversionDirection (..),
     MarkdownDocument (..),
@@ -55,6 +63,7 @@ import ZimToMarkdown.Options (
  )
 import ZimToMarkdown.Paths (relativePathFrom)
 import ZimToMarkdown.Version (versionText)
+import ZimToMarkdown.Zim (zimImagePaths)
 
 main :: IO ()
 main = do
@@ -97,6 +106,7 @@ runSingleFile request inputPath = do
                     convertContent
                         (conversionDirection request)
                         context
+                        Map.empty
                         content
             case conversionOutput request of
                 Nothing -> TextIO.putStr rendered
@@ -130,6 +140,7 @@ runNotebookRoot request inputRoot =
                     case discovered of
                         Left message -> failWith message
                         Right relativePaths -> do
+                            home <- getHomeDirectory
                             let items =
                                     classifyNotebookItems
                                         (conversionDirection request)
@@ -137,6 +148,7 @@ runNotebookRoot request inputRoot =
                                 knownPages = pageRelativePaths items
                             convertNotebookItems
                                 request
+                                home
                                 inputRoot
                                 outputRoot
                                 knownPages
@@ -147,24 +159,29 @@ convertNotebookItems ::
     ConversionRequest ->
     FilePath ->
     FilePath ->
+    FilePath ->
     Set.Set RelativePath ->
     [NotebookItem] ->
     IO (Either Text ())
-convertNotebookItems request inputRoot outputRoot knownPages = go
+convertNotebookItems request home inputRoot outputRoot knownPages items = go Map.empty items
   where
-    go [] = pure (Right ())
-    go (item : rest) = do
-        result <- processItem item
+    notebookAssets =
+        Set.fromList [relative | AssetItem relative <- items]
+
+    go _ [] = pure (Right ())
+    go assetMap (item : rest) = do
+        result <- processItem assetMap item
         case result of
-            Right () -> go rest
             Left message -> pure (Left message)
+            Right nextMap -> go nextMap rest
 
-    processItem (PageItem sourceRelative) =
-        convertPageItem sourceRelative
-    processItem (AssetItem relative) =
-        copyAssetItem relative
+    processItem assetMap (PageItem sourceRelative) =
+        convertPageItem assetMap sourceRelative
+    processItem assetMap (AssetItem relative) = do
+        copied <- copyAssetItem relative
+        pure (assetMap <$ copied)
 
-    convertPageItem sourceRelative = do
+    convertPageItem assetMap sourceRelative = do
         let sourcePath = inputRoot </> unRelativePath sourceRelative
             destinationRelative =
                 outputRelativePath
@@ -172,29 +189,109 @@ convertNotebookItems request inputRoot outputRoot knownPages = go
                     sourceRelative
             destinationPath =
                 outputRoot </> unRelativePath destinationRelative
-            context = LinkContext sourceRelative knownPages
         readResult <- readUtf8File sourcePath
         case readResult of
             Left message -> pure (Left message)
             Right content -> do
-                let rendered =
-                        convertContent
-                            (conversionDirection request)
-                            context
-                            content
-                writeUtf8File destinationPath rendered
+                let externalImages =
+                        case conversionDirection request of
+                            ZimToMarkdown -> zimImagePaths (ZimPage content)
+                            MarkdownToZim -> []
+                copied <- copyExternalImages home outputRoot notebookAssets assetMap externalImages
+                case copied of
+                    Left message -> pure (Left message)
+                    Right assetMap' -> do
+                        let context =
+                                LinkContext
+                                    { linkCurrentPage = sourceRelative
+                                    , linkKnownPages = knownPages
+                                    }
+                            rendered =
+                                convertContent
+                                    (conversionDirection request)
+                                    context
+                                    assetMap'
+                                    content
+                        written <- writeUtf8File destinationPath rendered
+                        pure (assetMap' <$ written)
 
     copyAssetItem relative = do
         let sourcePath = inputRoot </> unRelativePath relative
             destinationPath = outputRoot </> unRelativePath relative
         copyAsset sourcePath destinationPath
 
-convertContent :: ConversionDirection -> LinkContext -> Text -> Text
-convertContent direction context content =
+{- | Copies images referenced outside the notebook, such as @~/pics/a.png@,
+into the output @assets@ directory and records the rewritten target.
+-}
+copyExternalImages ::
+    FilePath ->
+    FilePath ->
+    Set.Set RelativePath ->
+    Map.Map Text RelativePath ->
+    [Text] ->
+    IO (Either Text (Map.Map Text RelativePath))
+copyExternalImages home outputRoot reserved initialPaths = go (Right initialPaths)
+  where
+    go result [] = pure result
+    go (Left message) (_ : _) = pure (Left message)
+    go (Right assetMap) (path : rest)
+        | Map.member path assetMap = go (Right assetMap) rest
+        | otherwise =
+            case resolveExternalImage home path of
+                Nothing -> go (Right assetMap) rest
+                Just source -> do
+                    exists <- doesFileExist source
+                    if exists
+                        then do
+                            let used =
+                                    reserved
+                                        <> Set.fromList (Map.elems assetMap)
+                                destination =
+                                    chooseAssetPath used (takeFileName source)
+                                destinationPath =
+                                    outputRoot </> unRelativePath destination
+                            copied <- copyAsset source destinationPath
+                            case copied of
+                                Left message -> pure (Left message)
+                                Right () ->
+                                    go
+                                        (Right (Map.insert path destination assetMap))
+                                        rest
+                        else go (Right assetMap) rest
+
+resolveExternalImage :: FilePath -> Text -> Maybe FilePath
+resolveExternalImage home path
+    | Just rest <- Text.stripPrefix "~/" path =
+        Just (home </> Text.unpack rest)
+    | Text.isPrefixOf "~" path = Nothing
+    | isAbsolute (Text.unpack path) = Just (Text.unpack path)
+    | otherwise = Nothing
+
+chooseAssetPath :: Set.Set RelativePath -> FilePath -> RelativePath
+chooseAssetPath used name = go 2 name
+  where
+    go attempt candidate =
+        let relative = RelativePath ("assets" </> candidate)
+         in if Set.member relative used
+                then go (attempt + 1) (numbered attempt candidate)
+                else relative
+    numbered attempt candidate =
+        takeBaseName candidate
+            <> "-"
+            <> show attempt
+            <> takeExtension candidate
+
+convertContent ::
+    ConversionDirection ->
+    LinkContext ->
+    Map.Map Text RelativePath ->
+    Text ->
+    Text
+convertContent direction context assets content =
     case direction of
         ZimToMarkdown ->
             unMarkdownDocument
-                (convertZimPage context (ZimPage content))
+                (convertZimPageWithAssets context assets (ZimPage content))
         MarkdownToZim ->
             unZimPage
                 (convertMarkdownDocument (MarkdownDocument content))

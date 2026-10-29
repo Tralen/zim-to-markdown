@@ -35,6 +35,7 @@ When `INPUT` is a directory, it is treated as a notebook. A file named `notebook
 
 - Page files are converted to the target extension (`.txt` to `.md`, or `.md` and `.markdown` to `.txt`).
 - Other files are copied unchanged, preserving their relative paths.
+- Images referenced outside the notebook with `~` or an absolute path are copied into `assets/` and linked relative to each page; missing images are left as written.
 - The root `notebook.zim` file is treated as metadata and is not copied.
 - Internal links are resolved using every page found in the notebook.
 - Hidden files and symbolic links are skipped.
