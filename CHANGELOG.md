@@ -15,6 +15,8 @@ All notable changes to this project are documented in this file. This project fo
 
 - Stripped Zim image display options such as `?width=512` from Markdown image targets.
 - Handled images referenced outside the notebook with `~` or an absolute path, rewriting each link relative to its page so the images open in Markdown editors.
+- Skipped verbatim blocks when scanning image targets, and stopped compounding collision suffixes for generated assets.
+- Imported the shared warning stanza in every component and moved `-Werror` behind the manual `development` flag, because `cabal check` rejects an unconditional `-Werror`; CI now builds and tests with `-fdevelopment`. Fixed the warnings this exposed and raised the executable's `directory` bound to 1.3.1 for `createFileLink`.
 
 ### Changed
 

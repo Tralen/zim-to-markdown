@@ -13,7 +13,6 @@ module ZimToMarkdown.Options (
 
 import Data.Text (Text)
 import Data.Text qualified as Text
-import System.FilePath (FilePath)
 
 import ZimToMarkdown.Domain (ConversionDirection (..))
 

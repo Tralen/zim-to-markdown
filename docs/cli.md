@@ -36,7 +36,7 @@ When `INPUT` is a directory, it is treated as a notebook. A file named `notebook
 
 - Page files are converted to the target extension (`.txt` to `.md`, or `.md` and `.markdown` to `.txt`).
 - Other files are copied unchanged, preserving their relative paths.
-- Images referenced outside the notebook with `~` or an absolute path follow `--images`: `copy` stores them in `_assets/`, `symlink` stores absolute symbolic links in `_assets/`, and `relative` links to the originals with `..` segments. Links are written relative to each page; missing images are left as written.
+- Images referenced outside the notebook with `~` or an absolute path follow `--images`: `copy` stores them in `_assets/`, `symlink` stores absolute symbolic links in `_assets/`, and `relative` links to the originals with `..` segments. Links are written relative to each page; missing images keep the cleaned path, without the display options.
 - The root `notebook.zim` file is treated as metadata and is not copied.
 - Internal links are resolved using every page found in the notebook.
 - Hidden files and symbolic links are skipped.
@@ -44,6 +44,8 @@ When `INPUT` is a directory, it is treated as a notebook. A file named `notebook
 - The output directory must not be inside the input directory.
 
 `symlink` and `relative` require a notebook input. `markdown-to-zim` accepts only `copy`. The generated `_assets/` directory is reserved for external images; assets inside the notebook keep their own paths.
+
+`symlink` needs symbolic-link support: on Windows it requires Developer Mode or Administrator privileges, and backup or archive tools may dereference or skip the links. These modes read the paths written in the notebook, so only convert notebooks from a trusted source; the output can copy files from outside the notebook and the symlinks reveal absolute paths.
 
 ```sh
 zim-to-markdown my-notebook --output my-notebook-markdown

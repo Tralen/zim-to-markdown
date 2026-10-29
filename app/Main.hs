@@ -157,7 +157,19 @@ runNotebookRoot request inputRoot
                         case discovered of
                             Left message -> failWith message
                             Right relativePaths -> do
-                                home <- getHomeDirectory
+                                home <-
+                                    if conversionDirection request == ZimToMarkdown
+                                        then do
+                                            homeResult <-
+                                                try getHomeDirectory ::
+                                                    IO (Either IOException FilePath)
+                                            pure
+                                                ( either
+                                                    (Left . renderFileError "home directory")
+                                                    Right
+                                                    homeResult
+                                                )
+                                        else pure (Right "")
                                 let items =
                                         classifyNotebookItems
                                             (conversionDirection request)
@@ -174,7 +186,7 @@ runNotebookRoot request inputRoot
 
 convertNotebookItems ::
     ConversionRequest ->
-    FilePath ->
+    Either Text FilePath ->
     FilePath ->
     FilePath ->
     Set.Set RelativePath ->
@@ -183,8 +195,15 @@ convertNotebookItems ::
 convertNotebookItems request home inputRoot outputRoot knownPages items = go Map.empty items
   where
     imageMode = conversionImageMode request
-    notebookAssets =
-        Set.fromList [relative | AssetItem relative <- items]
+    reservedOutputs =
+        Set.fromList
+            ( [relative | AssetItem relative <- items]
+                <> [ outputRelativePath
+                        (conversionDirection request)
+                        relative
+                   | PageItem relative <- items
+                   ]
+            )
 
     go _ [] = pure (Right ())
     go assetMap (item : rest) = do
@@ -220,7 +239,7 @@ convertNotebookItems request home inputRoot outputRoot knownPages items = go Map
                         imageMode
                         home
                         outputRoot
-                        notebookAssets
+                        reservedOutputs
                         assetMap
                         destinationRelative
                         externalImages
@@ -253,7 +272,7 @@ left untouched.
 -}
 preparePageImages ::
     ImageMode ->
-    FilePath ->
+    Either Text FilePath ->
     FilePath ->
     Set.Set RelativePath ->
     Map.Map Text RelativePath ->
@@ -278,8 +297,9 @@ preparePageImages imageMode home outputRoot reserved initialAssets pageRelative 
         | Map.member path targets = go (Right (assets, targets)) rest
         | otherwise =
             case resolveExternalImage home path of
-                Nothing -> go (Right (assets, targets)) rest
-                Just source -> do
+                Left message -> pure (Left message)
+                Right Nothing -> go (Right (assets, targets)) rest
+                Right (Just source) -> do
                     exists <- doesFileExist source
                     if exists
                         then case imageMode of
@@ -360,13 +380,15 @@ preparePageImages imageMode home outputRoot reserved initialAssets pageRelative 
                 )
             )
 
-resolveExternalImage :: FilePath -> Text -> Maybe FilePath
+resolveExternalImage :: Either Text FilePath -> Text -> Either Text (Maybe FilePath)
 resolveExternalImage home path
     | Just rest <- Text.stripPrefix "~/" path =
-        Just (home </> Text.unpack rest)
-    | Text.isPrefixOf "~" path = Nothing
-    | isAbsolute (Text.unpack path) = Just (Text.unpack path)
-    | otherwise = Nothing
+        case home of
+            Left message -> Left message
+            Right directory -> Right (Just (directory </> Text.unpack rest))
+    | Text.isPrefixOf "~" path = Right Nothing
+    | isAbsolute (Text.unpack path) = Right (Just (Text.unpack path))
+    | otherwise = Right Nothing
 
 createSymlink :: FilePath -> FilePath -> IO (Either Text ())
 createSymlink source destination = do
@@ -396,18 +418,20 @@ removeIfPresent path = do
         Right () -> pure (Right ())
 
 chooseAssetPath :: Set.Set RelativePath -> FilePath -> RelativePath
-chooseAssetPath used = go 2
+chooseAssetPath used name = go 2 name
   where
+    go :: Int -> FilePath -> RelativePath
     go attempt candidate =
         let relative = RelativePath ("_assets" </> candidate)
          in if Set.member relative used
-                then go (attempt + 1) (numbered attempt candidate)
+                then go (attempt + 1) (numbered attempt name)
                 else relative
-    numbered attempt candidate =
-        takeBaseName candidate
+    numbered :: Int -> FilePath -> FilePath
+    numbered attempt base =
+        takeBaseName base
             <> "-"
             <> show attempt
-            <> takeExtension candidate
+            <> takeExtension base
 
 convertContent ::
     ConversionDirection ->

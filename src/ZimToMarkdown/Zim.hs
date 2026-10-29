@@ -41,22 +41,22 @@ convertZimToMarkdownWithAssets ::
     ZimPage ->
     MarkdownDocument
 convertZimToMarkdownWithAssets context assets (ZimPage content) =
-    let lines =
+    let pageLines =
             Text.splitOn
                 "\n"
                 (stripZimHeader (normalizeNewlines content))
-        headingMap = buildHeadingMap lines
+        headingMap = buildHeadingMap pageLines
      in MarkdownDocument
             ( Text.intercalate
                 "\n"
-                (renderBlocks context assets headingMap lines)
+                (renderBlocks context assets headingMap pageLines)
             )
 
 stripZimHeader :: Text -> Text
 stripZimHeader content =
-    let lines = Text.splitOn "\n" content
-        remaining = dropWhile isMetadataLine lines
-     in if length remaining == length lines
+    let headerLines = Text.splitOn "\n" content
+        remaining = dropWhile isMetadataLine headerLines
+     in if length remaining == length headerLines
             then content
             else Text.intercalate "\n" (dropWhile isBlank remaining)
 
@@ -80,9 +80,9 @@ isBlank = Text.null . Text.strip
 Markdown levels starting at one.
 -}
 buildHeadingMap :: [Text] -> Map.Map Int Int
-buildHeadingMap lines =
+buildHeadingMap pageLines =
     Map.fromList
-        (zip (sort (nub (collectHeadingLevels lines))) [1 ..])
+        (zip (sort (nub (collectHeadingLevels pageLines))) [1 ..])
 
 collectHeadingLevels :: [Text] -> [Int]
 collectHeadingLevels = go OutsideVerbatim
@@ -366,12 +366,22 @@ cleanImagePath rawPath =
      in Text.strip (Text.takeWhile (/= '?') trimmed)
 
 {- | Lists the image paths referenced by a Zim page, without display options.
-Anchors such as @{{id: intro}}@ are not images and are ignored.
+Anchors such as @{{id: intro}}@ are not images and are ignored. Verbatim
+blocks are skipped, because they are copied to the output unchanged.
 -}
 zimImagePaths :: ZimPage -> [Text]
-zimImagePaths (ZimPage content) = go content
+zimImagePaths (ZimPage content) =
+    concatMap scanLine (outsideVerbatim (Text.splitOn "\n" content))
   where
-    go text =
+    outsideVerbatim = go OutsideVerbatim
+      where
+        go _ [] = []
+        go state (line : rest)
+            | isVerbatimDelimiter line = go (toggleState state) rest
+            | state == InsideVerbatim = go InsideVerbatim rest
+            | otherwise = line : go OutsideVerbatim rest
+
+    scanLine text =
         case Text.breakOn "{{" text of
             (_, rest)
                 | Text.null rest -> []
@@ -381,8 +391,8 @@ zimImagePaths (ZimPage content) = go content
                         remaining = Text.drop 2 closing
                         path = cleanImagePath (Text.takeWhile (/= '|') inner)
                      in if Text.null closing
-                            then []
+                            then scanLine afterOpening
                             else
                                 if Text.isPrefixOf "id:" (Text.strip inner) || Text.null path
-                                    then go remaining
-                                    else path : go remaining
+                                    then scanLine remaining
+                                    else path : scanLine remaining

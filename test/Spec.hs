@@ -30,6 +30,7 @@ import ZimToMarkdown.Notebook (outputRelativePath)
 import ZimToMarkdown.Options (
     ConversionRequest (..),
     Options (..),
+    OptionsError,
     parseOptions,
     renderOptionsError,
  )
@@ -254,12 +255,25 @@ tests =
         )
         "![pic](../_assets/pic.png)"
     , TestCase
+        "zim missing image keeps the cleaned path"
+        (zimToMarkdown "{{~/pics/missing.png?width=512}}")
+        "![missing](~/pics/missing.png)"
+    , TestCase
         "zim image targets are scanned without options or anchors"
         ( Text.intercalate
             ", "
-            (zimImagePaths (ZimPage "{{~/a.png?width=1}} {{id: x}} {{b.png|alt}}"))
+            (zimImagePaths (ZimPage "{{~/a.png?width=1}} {{id: x}} {{ id: y }} {{b.png|alt}}"))
         )
         "~/a.png, b.png"
+    , TestCase
+        "zim image targets skip verbatim blocks"
+        ( Text.intercalate
+            ", "
+            ( zimImagePaths
+                (ZimPage (Text.unlines ["'''", "{{~/code.png}}", "'''", "{{~/real.png}}"]))
+            )
+        )
+        "~/real.png"
     , TestCase
         "zim anchor"
         (zimToMarkdown "{{id: intro}}")
@@ -497,6 +511,7 @@ imageModeResult arguments =
         Right ShowHelp -> "help"
         Right ShowVersion -> "version"
 
+optionErrorText :: Either OptionsError Options -> Text
 optionErrorText =
     either renderOptionsError (const "unexpected success")
 

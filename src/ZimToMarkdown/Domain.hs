@@ -7,7 +7,6 @@ module ZimToMarkdown.Domain (
 ) where
 
 import Data.Text (Text)
-import System.FilePath (FilePath)
 
 -- | The direction in which a document is converted.
 data ConversionDirection

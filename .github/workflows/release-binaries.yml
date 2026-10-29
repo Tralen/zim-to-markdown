@@ -52,8 +52,8 @@ jobs:
       - name: Build and test
         shell: bash
         run: |
-          cabal build all
-          cabal test all
+          cabal build all -fdevelopment
+          cabal test all -fdevelopment
 
       - name: Package binary
         shell: bash
