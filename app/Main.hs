@@ -268,7 +268,7 @@ resolveExternalImage home path
     | otherwise = Nothing
 
 chooseAssetPath :: Set.Set RelativePath -> FilePath -> RelativePath
-chooseAssetPath used name = go 2 name
+chooseAssetPath used = go 2
   where
     go attempt candidate =
         let relative = RelativePath ("assets" </> candidate)

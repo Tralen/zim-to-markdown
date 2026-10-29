@@ -360,15 +360,13 @@ renderImage context assets inner =
                     <> renderMarkdownPath target
                     <> ")"
 
-{- | Removes the Zim display options, such as @?width=512@, from an image path.
--}
+-- | Removes the Zim display options, such as @?width=512@, from an image path.
 cleanImagePath :: Text -> Text
 cleanImagePath rawPath =
     let trimmed = Text.strip rawPath
      in Text.strip (Text.takeWhile (/= '?') trimmed)
 
-{- | Uses the copied asset when the image was collected during the conversion.
--}
+-- | Uses the copied asset when the image was collected during the conversion.
 resolveImageTarget :: LinkContext -> Map.Map Text RelativePath -> Text -> Text
 resolveImageTarget context assets path =
     case Map.lookup path assets of
