@@ -63,16 +63,14 @@ cabal upload --publish --documentation dist-newstyle/zim-to-markdown-*-docs.tar.
 Push `main`, create and verify the signed tag, push the tag, then create the GitHub release:
 
 ```sh
-git push operador main
 git push origin main
 git tag v<version> -m "zim-to-markdown <version>"
 git tag -v v<version>
-git push operador v<version>
 git push origin v<version>
 gh release create v<version> --verify-tag --generate-notes
 ```
 
-`tag.gpgSign` signs the tag automatically, so `git tag` does not need `-s`. The canonical history lives in the `operador` bare; `origin` is the GitHub remote used for the release. Do not rewrite or force-push an existing release tag.
+`tag.gpgSign` signs the tag automatically, so `git tag` does not need `-s`. Do not rewrite or force-push an existing release tag.
 
 ### Tag signing
 
@@ -115,7 +113,7 @@ Push `main` before tagging so the CI matrix runs on Linux, macOS, and Windows, i
 
 ## Environment and secrets
 
-The `release` environment exists and is used by the `Release binaries` workflow. If a registry upload is added to a workflow, store its token as an environment secret and map it to the environment variable read by the upload command. Do not use Actions variables for tokens. Hackage publication is performed locally with the `token:` entry in `~/.cabal/config` (mode `600`); Cabal sends it as `Authorization: X-ApiKey`, so the value never enters `argv` or the environment. Never print the token or pass it on the command line.
+The `release` environment exists and is used by the `Release binaries` workflow. If a registry upload is added to a workflow, store its token as an environment secret and map it to the environment variable read by the upload command. Do not use Actions variables for tokens. Authenticate the Hackage upload with a token stored outside the repository; never commit, print or pass it on the command line.
 
 ## Rules
 

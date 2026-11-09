@@ -13,7 +13,7 @@ All notable changes to this project are documented in this file. This project fo
 ### Changed
 
 - Documented `--formatting` in the CLI, conversion, domain and architecture guides, and added a notebook walkthrough to the CLI guide.
-- Corrected the release guide to build with `-fdevelopment`, push to the canonical `operador` bare, sign tags through `tag.gpgSign`, and read the Hackage token from `~/.cabal/config` instead of the environment.
+- Corrected the release guide to build with `-fdevelopment`, sign tags through `tag.gpgSign`, and keep the Hackage token out of the environment.
 
 ## [0.3.1.0] - 2026-10-29
 
