@@ -6,7 +6,7 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 
 | Zim | Markdown |
 | --- | --- |
-| `=` heading syntax, levels 1 to 5 | Normalized Markdown heading, from `#` to `###` |
+| `=` heading syntax, levels 1 to 5 | Consecutive Markdown heading, from `#` to `#####` |
 | `**bold**` | `**bold**` |
 | `//italic//` | `*italic*` |
 | `__underline__` | `<u>underline</u>`, or `**`/`*`/`~~` with `--formatting` |
@@ -35,7 +35,7 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 | Tab-indented block | `> blockquote` |
 | `\| cell \| cell \|` pipe table | pipe table with an alignment row |
 
-Leading Zim metadata header lines (`Content-Type`, `Wiki-Format`, `Creation-Date`, `Modification-Date`) are removed. Heading levels are normalized per page: distinct Zim levels are compressed into consecutive Markdown levels starting at `#` and capped at `###`. A pipe table without an alignment row receives a default alignment row.
+Leading Zim metadata header lines (`Content-Type`, `Wiki-Format`, `Creation-Date`, `Modification-Date`) are removed. Heading levels are normalized per page: distinct Zim levels are compressed into consecutive Markdown levels starting at `#` and capped at `######`, the deepest Markdown level. A pipe table without an alignment row receives a default alignment row.
 
 Underline, subscript and superscript have no Markdown syntax, so they become HTML by default. `--formatting bold`, `--formatting italic` and `--formatting strike` collapse them into the chosen emphasis instead, which keeps the text readable in renderers that ignore raw HTML. Anchors such as `{{id: name}}` are not formatting and stay HTML in every mode.
 

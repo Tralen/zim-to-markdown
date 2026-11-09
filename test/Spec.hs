@@ -141,9 +141,9 @@ tests =
         (zimToMarkdown (Text.unlines ["=== Section ===", "", "== Subsection =="]))
         (Text.unlines ["# Section", "", "## Subsection"])
     , TestCase
-        "zim headings are capped at three levels"
+        "zim headings preserve the hierarchy"
         (zimToMarkdown (Text.unlines ["====== Title ======", "===== Two =====", "==== Three ====", "=== Four ===", "== Five =="]))
-        (Text.unlines ["# Title", "## Two", "### Three", "### Four", "### Five"])
+        (Text.unlines ["# Title", "## Two", "### Three", "#### Four", "##### Five"])
     , TestCase
         "zim metadata header removed"
         ( zimToMarkdown

@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. This project fo
 
 ## [Unreleased]
 
+## [0.4.0.1] - 2026-11-09
+
+### Fixed
+
+- Preserved the heading hierarchy when a page has more than three distinct Zim levels. The Markdown cap moved from `###` to `######`, so level four and level five headings no longer collapse into level three.
+
 ## [0.4.0.0] - 2026-11-09
 
 ### Added

@@ -155,7 +155,7 @@ renderLine formatting context assets headingMap line
     | Text.null (Text.strip line) = line
     | Just (level, content) <- parseHeading line =
         let markdownLevel =
-                min 3 (Map.findWithDefault level level headingMap)
+                min 6 (Map.findWithDefault level level headingMap)
          in Text.replicate markdownLevel "#"
                 <> " "
                 <> convertInline formatting context assets content

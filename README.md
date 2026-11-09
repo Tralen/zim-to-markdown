@@ -20,7 +20,7 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 - Converts a single page to standard output or to a file.
 - Converts a whole notebook recursively, reconstructing its folder structure.
 - Accepts the notebook directory or its `notebook.zim` configuration file as input.
-- Strips the leading Zim metadata header and normalizes heading levels to `#`, `##`, and `###`.
+- Strips the leading Zim metadata header and normalizes heading levels into consecutive Markdown levels.
 - Copies or links external images with `--images copy|symlink|relative`, so images and attachments keep working.
 - Collapses inline formatting without a Markdown counterpart into bold, italic or strikethrough with `--formatting html|bold|italic|strike`.
 - Resolves internal Zim links across the notebook.
