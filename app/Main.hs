@@ -40,10 +40,11 @@ import System.IO.Error (isDoesNotExistError)
 
 import ZimToMarkdown.Converter (
     convertMarkdownDocument,
-    convertZimPageWithAssets,
+    convertZimPageWithAssetsAndFormatting,
  )
 import ZimToMarkdown.Domain (
     ConversionDirection (..),
+    FormattingMode (..),
     MarkdownDocument (..),
     RelativePath (..),
     ZimPage (..),
@@ -99,13 +100,17 @@ isNotebookDefinition :: FilePath -> Bool
 isNotebookDefinition path = takeFileName path == "notebook.zim"
 
 runSingleFile :: ConversionRequest -> FilePath -> IO ()
-runSingleFile request inputPath =
-    case conversionImageMode request of
-        CopyImages -> runSingleFileCopy request inputPath
-        SymlinkImages ->
-            failWith "The symlink image mode requires a notebook input."
-        RelativeImages ->
-            failWith "The relative image mode requires a notebook input."
+runSingleFile request inputPath
+    | conversionDirection request == MarkdownToZim
+        && conversionFormatting request /= HtmlFormatting =
+        failWith "The --formatting mode applies only when converting Zim to Markdown."
+    | otherwise =
+        case conversionImageMode request of
+            CopyImages -> runSingleFileCopy request inputPath
+            SymlinkImages ->
+                failWith "The symlink image mode requires a notebook input."
+            RelativeImages ->
+                failWith "The relative image mode requires a notebook input."
 
 runSingleFileCopy :: ConversionRequest -> FilePath -> IO ()
 runSingleFileCopy request inputPath = do
@@ -118,6 +123,7 @@ runSingleFileCopy request inputPath = do
                 rendered =
                     convertContent
                         (conversionDirection request)
+                        (conversionFormatting request)
                         context
                         Map.empty
                         content
@@ -139,6 +145,9 @@ runNotebookRoot request inputRoot
     | conversionDirection request == MarkdownToZim
         && conversionImageMode request /= CopyImages =
         failWith "The --images mode applies only when converting Zim to Markdown."
+    | conversionDirection request == MarkdownToZim
+        && conversionFormatting request /= HtmlFormatting =
+        failWith "The --formatting mode applies only when converting Zim to Markdown."
     | otherwise =
         case conversionOutput request of
             Nothing ->
@@ -254,6 +263,7 @@ convertNotebookItems request home inputRoot outputRoot knownPages items = go Map
                             rendered =
                                 convertContent
                                     (conversionDirection request)
+                                    (conversionFormatting request)
                                     context
                                     imageTargets
                                     content
@@ -435,15 +445,21 @@ chooseAssetPath used name = go 2 name
 
 convertContent ::
     ConversionDirection ->
+    FormattingMode ->
     LinkContext ->
     Map.Map Text Text ->
     Text ->
     Text
-convertContent direction context assets content =
+convertContent direction formatting context assets content =
     case direction of
         ZimToMarkdown ->
             unMarkdownDocument
-                (convertZimPageWithAssets context assets (ZimPage content))
+                ( convertZimPageWithAssetsAndFormatting
+                    formatting
+                    context
+                    assets
+                    (ZimPage content)
+                )
         MarkdownToZim ->
             unZimPage
                 (convertMarkdownDocument (MarkdownDocument content))

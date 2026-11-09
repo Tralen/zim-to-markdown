@@ -2,6 +2,8 @@
 module ZimToMarkdown.Zim (
     convertZimToMarkdown,
     convertZimToMarkdownWithAssets,
+    convertZimToMarkdownWithAssetsAndFormatting,
+    convertZimToMarkdownWithFormatting,
     zimImagePaths,
 ) where
 
@@ -12,7 +14,7 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import System.FilePath (takeBaseName)
 
-import ZimToMarkdown.Domain (MarkdownDocument (..), ZimPage (..))
+import ZimToMarkdown.Domain (FormattingMode (..), MarkdownDocument (..), ZimPage (..))
 import ZimToMarkdown.Inline (
     breakOnFirstMarker,
     enclosed,
@@ -29,8 +31,18 @@ import ZimToMarkdown.Table (
 
 -- | Converts a Zim page into Markdown.
 convertZimToMarkdown :: LinkContext -> ZimPage -> MarkdownDocument
-convertZimToMarkdown context =
-    convertZimToMarkdownWithAssets context Map.empty
+convertZimToMarkdown = convertZimToMarkdownWithFormatting HtmlFormatting
+
+{- | Converts a Zim page into Markdown, choosing how inline formatting without
+a Markdown counterpart is rendered.
+-}
+convertZimToMarkdownWithFormatting ::
+    FormattingMode ->
+    LinkContext ->
+    ZimPage ->
+    MarkdownDocument
+convertZimToMarkdownWithFormatting formatting context =
+    convertZimToMarkdownWithAssetsAndFormatting formatting context Map.empty
 
 {- | Converts a Zim page into Markdown, rewriting images to the targets the
 notebook conversion prepared for them.
@@ -40,7 +52,19 @@ convertZimToMarkdownWithAssets ::
     Map.Map Text Text ->
     ZimPage ->
     MarkdownDocument
-convertZimToMarkdownWithAssets context assets (ZimPage content) =
+convertZimToMarkdownWithAssets =
+    convertZimToMarkdownWithAssetsAndFormatting HtmlFormatting
+
+{- | Converts a Zim page into Markdown with prepared image targets and a
+formatting mode for inline markup that Markdown cannot express.
+-}
+convertZimToMarkdownWithAssetsAndFormatting ::
+    FormattingMode ->
+    LinkContext ->
+    Map.Map Text Text ->
+    ZimPage ->
+    MarkdownDocument
+convertZimToMarkdownWithAssetsAndFormatting formatting context assets (ZimPage content) =
     let pageLines =
             Text.splitOn
                 "\n"
@@ -49,7 +73,7 @@ convertZimToMarkdownWithAssets context assets (ZimPage content) =
      in MarkdownDocument
             ( Text.intercalate
                 "\n"
-                (renderBlocks context assets headingMap pageLines)
+                (renderBlocks formatting context assets headingMap pageLines)
             )
 
 stripZimHeader :: Text -> Text
@@ -104,8 +128,8 @@ data BlockState
     | InsideVerbatim
     deriving (Eq)
 
-renderBlocks :: LinkContext -> Map.Map Text Text -> Map.Map Int Int -> [Text] -> [Text]
-renderBlocks context assets headingMap = go OutsideVerbatim
+renderBlocks :: FormattingMode -> LinkContext -> Map.Map Text Text -> Map.Map Int Int -> [Text] -> [Text]
+renderBlocks formatting context assets headingMap = go OutsideVerbatim
   where
     go _ [] = []
     go state (line : rest)
@@ -117,7 +141,7 @@ renderBlocks context assets headingMap = go OutsideVerbatim
             let (block, remaining) = takeTableBlock (line : rest)
              in normalizeTable block <> go OutsideVerbatim remaining
         | otherwise =
-            renderLine context assets headingMap line : go OutsideVerbatim rest
+            renderLine formatting context assets headingMap line : go OutsideVerbatim rest
 
 toggleState :: BlockState -> BlockState
 toggleState OutsideVerbatim = InsideVerbatim
@@ -126,22 +150,22 @@ toggleState InsideVerbatim = OutsideVerbatim
 isVerbatimDelimiter :: Text -> Bool
 isVerbatimDelimiter line = Text.strip line == "'''"
 
-renderLine :: LinkContext -> Map.Map Text Text -> Map.Map Int Int -> Text -> Text
-renderLine context assets headingMap line
+renderLine :: FormattingMode -> LinkContext -> Map.Map Text Text -> Map.Map Int Int -> Text -> Text
+renderLine formatting context assets headingMap line
     | Text.null (Text.strip line) = line
     | Just (level, content) <- parseHeading line =
         let markdownLevel =
                 min 3 (Map.findWithDefault level level headingMap)
          in Text.replicate markdownLevel "#"
                 <> " "
-                <> convertInline context assets content
+                <> convertInline formatting context assets content
     | isHorizontalRule line = "---"
     | Just listLine <- parseListLine line =
-        renderListLine context assets listLine
+        renderListLine formatting context assets listLine
     | Just (depth, content) <- parseIndentedBlock line =
         Text.replicate depth "> "
-            <> renderLine context assets headingMap content
-    | otherwise = convertInline context assets line
+            <> renderLine formatting context assets headingMap content
+    | otherwise = convertInline formatting context assets line
 
 isHorizontalRule :: Text -> Bool
 isHorizontalRule line =
@@ -231,11 +255,11 @@ parseAlphabetic text =
                 Just (Alphabetic, rest)
         _ -> Nothing
 
-renderListLine :: LinkContext -> Map.Map Text Text -> ListLine -> Text
-renderListLine context assets listLine =
+renderListLine :: FormattingMode -> LinkContext -> Map.Map Text Text -> ListLine -> Text
+renderListLine formatting context assets listLine =
     indentToSpaces (listIndent listLine)
         <> prefix
-        <> convertInline context assets (listContent listLine)
+        <> convertInline formatting context assets (listContent listLine)
   where
     prefix =
         case listMarker listLine of
@@ -272,8 +296,8 @@ inlineMarkers =
     , "^{"
     ]
 
-convertInline :: LinkContext -> Map.Map Text Text -> Text -> Text
-convertInline context assets = go
+convertInline :: FormattingMode -> LinkContext -> Map.Map Text Text -> Text -> Text
+convertInline formatting context assets = go
   where
     go text =
         let (plain, marker) = breakOnFirstMarker inlineMarkers text
@@ -304,8 +328,7 @@ convertInline context assets = go
         , Just result <-
             enclosed "//" "//" (\inner -> "*" <> go inner <> "*") text =
             keep result
-        | Just result <-
-            enclosed "__" "__" (\inner -> "<u>" <> go inner <> "</u>") text =
+        | Just result <- enclosed "__" "__" (renderUnsupported "u") text =
             keep result
         | Just result <- enclosed "''" "''" renderInlineCode text =
             keep result
@@ -316,20 +339,25 @@ convertInline context assets = go
             enclosed
                 "[["
                 "]]"
-                (renderZimLink context (convertInline context assets))
+                (renderZimLink context (convertInline formatting context assets))
                 text =
             keep result
         | Just result <- enclosed "{{" "}}" (renderImage assets) text =
             keep result
-        | Just result <-
-            enclosed "_{" "}" (\inner -> "<sub>" <> go inner <> "</sub>") text =
+        | Just result <- enclosed "_{" "}" (renderUnsupported "sub") text =
             keep result
-        | Just result <-
-            enclosed "^{" "}" (\inner -> "<sup>" <> go inner <> "</sup>") text =
+        | Just result <- enclosed "^{" "}" (renderUnsupported "sup") text =
             keep result
         | otherwise = Text.take 1 text <> go (Text.drop 1 text)
 
     keep (rendered, after) = rendered <> go after
+
+    renderUnsupported :: Text -> Text -> Text
+    renderUnsupported tag inner =
+        case formatting of
+            HtmlFormatting -> "<" <> tag <> ">" <> go inner <> "</" <> tag <> ">"
+            BoldFormatting -> "**" <> go inner <> "**"
+            ItalicFormatting -> "*" <> go inner <> "*"
 
 renderAnchor :: Text -> Text
 renderAnchor inner =

@@ -14,7 +14,7 @@ module ZimToMarkdown.Options (
 import Data.Text (Text)
 import Data.Text qualified as Text
 
-import ZimToMarkdown.Domain (ConversionDirection (..))
+import ZimToMarkdown.Domain (ConversionDirection (..), FormattingMode (..))
 
 -- | How images referenced outside the notebook are handled.
 data ImageMode
@@ -41,6 +41,7 @@ data ConversionRequest = ConversionRequest
     , conversionOutput :: Maybe OutputPath
     , conversionDirection :: ConversionDirection
     , conversionImageMode :: ImageMode
+    , conversionFormatting :: FormattingMode
     }
     deriving (Eq, Show)
 
@@ -59,6 +60,7 @@ data OptionsError
     | UnexpectedArgument Text
     | InvalidDirection Text
     | InvalidImageMode Text
+    | InvalidFormattingMode Text
     deriving (Eq, Show)
 
 -- | Parses command line arguments without performing any input or output.
@@ -73,6 +75,7 @@ data PartialOptions = PartialOptions
     , partialOutput :: Maybe FilePath
     , partialDirection :: ConversionDirection
     , partialImageMode :: ImageMode
+    , partialFormatting :: FormattingMode
     }
 
 emptyOptions :: PartialOptions
@@ -82,6 +85,7 @@ emptyOptions =
         , partialOutput = Nothing
         , partialDirection = ZimToMarkdown
         , partialImageMode = CopyImages
+        , partialFormatting = HtmlFormatting
         }
 
 parseConversion :: [String] -> Either OptionsError ConversionRequest
@@ -97,12 +101,14 @@ parseConversion = go emptyOptions
                         , conversionOutput = OutputPath <$> partialOutput options
                         , conversionDirection = partialDirection options
                         , conversionImageMode = partialImageMode options
+                        , conversionFormatting = partialFormatting options
                         }
     go _ ["--output"] = Left (MissingOptionValue "--output")
     go _ ["-o"] = Left (MissingOptionValue "-o")
     go _ ["--direction"] = Left (MissingOptionValue "--direction")
     go _ ["-d"] = Left (MissingOptionValue "-d")
     go _ ["--images"] = Left (MissingOptionValue "--images")
+    go _ ["--formatting"] = Left (MissingOptionValue "--formatting")
     go options ("--output" : value : rest) =
         go options{partialOutput = Just value} rest
     go options ("-o" : value : rest) =
@@ -113,6 +119,8 @@ parseConversion = go emptyOptions
         setDirection options value rest
     go options ("--images" : value : rest) =
         setImageMode options value rest
+    go options ("--formatting" : value : rest) =
+        setFormatting options value rest
     go options (argument : rest)
         | isOption argument = Left (UnknownOption (Text.pack argument))
         | otherwise =
@@ -133,6 +141,12 @@ parseConversion = go emptyOptions
             Just imageMode ->
                 go options{partialImageMode = imageMode} rest
 
+    setFormatting options value rest =
+        case parseFormatting value of
+            Nothing -> Left (InvalidFormattingMode (Text.pack value))
+            Just formatting ->
+                go options{partialFormatting = formatting} rest
+
     isOption ('-' : _) = True
     isOption _ = False
 
@@ -151,6 +165,14 @@ parseImageMode value =
         "relative" -> Just RelativeImages
         _ -> Nothing
 
+parseFormatting :: String -> Maybe FormattingMode
+parseFormatting value =
+    case value of
+        "html" -> Just HtmlFormatting
+        "bold" -> Just BoldFormatting
+        "italic" -> Just ItalicFormatting
+        _ -> Nothing
+
 -- | Renders an option parsing failure as a user facing message.
 renderOptionsError :: OptionsError -> Text
 renderOptionsError optionsError =
@@ -167,6 +189,10 @@ renderOptionsError optionsError =
             "Invalid image mode: "
                 <> imageMode
                 <> ". Use copy, symlink or relative."
+        InvalidFormattingMode formatting ->
+            "Invalid formatting mode: "
+                <> formatting
+                <> ". Use html, bold or italic."
 
 -- | Command line usage description.
 helpText :: Text
@@ -183,6 +209,8 @@ helpText =
         , "  -d, --direction DIRECTION  zim-to-markdown (default) or markdown-to-zim."
         , "  -o, --output PATH          Output file for a page; output directory for a notebook."
         , "      --images MODE          External images: copy (default), symlink or relative."
+        , "      --formatting MODE      Inline formatting without a Markdown counterpart:"
+        , "                             html (default), bold or italic."
         , "  -h, --help                 Show this help."
         , "  -V, --version              Show the application version."
         , ""

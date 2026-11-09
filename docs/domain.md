@@ -4,6 +4,10 @@
 
 A `ConversionDirection` is either `ZimToMarkdown` or `MarkdownToZim`. The constructor determines which parser reads the input and which extension is used for output pages.
 
+## Formatting modes
+
+A `FormattingMode` decides how inline Zim formatting without a Markdown counterpart is rendered. `HtmlFormatting` keeps `<u>`, `<sub>` and `<sup>`; `BoldFormatting` and `ItalicFormatting` collapse underline, subscript and superscript into the chosen emphasis. The mode only affects the Zim to Markdown direction, and anchors are never collapsed.
+
 ## Documents
 
 A `ZimPage` is the immutable text of one page read from a Zim wiki notebook. It still contains Zim markup and has not been interpreted. A `MarkdownDocument` is the immutable text produced by a successful conversion to Markdown.
@@ -32,4 +36,4 @@ A discovered file is classified as either a `PageItem` or an `AssetItem`. Pages 
 
 ## Requests and errors
 
-A `ConversionRequest` records the input path, the optional output path, and the direction. Command line failures are modeled by `OptionsError`. Input and output failures are reported by `Main` as `Text` messages because they describe effects at the boundary.
+A `ConversionRequest` records the input path, the optional output path, the direction, the image mode and the formatting mode. Command line failures are modeled by `OptionsError`. Input and output failures are reported by `Main` as `Text` messages because they describe effects at the boundary.

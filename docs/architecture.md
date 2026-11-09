@@ -6,7 +6,7 @@ The project is split into a pure library and a thin executable. All effects live
 
 | Module | Responsibility |
 | --- | --- |
-| `ZimToMarkdown.Domain` | Core types: directions, documents, and relative paths. |
+| `ZimToMarkdown.Domain` | Core types: directions, formatting modes, documents, and relative paths. |
 | `ZimToMarkdown.Zim` | Pure Zim to Markdown block and inline conversion. |
 | `ZimToMarkdown.Markdown` | Pure Markdown to Zim block and inline conversion. |
 | `ZimToMarkdown.Converter` | Direction specific entry points used by the executable. |

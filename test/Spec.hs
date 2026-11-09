@@ -18,9 +18,11 @@ import ZimToMarkdown.Converter (
     convertMarkdownDocument,
     convertZimPage,
     convertZimPageWithAssets,
+    convertZimPageWithAssetsAndFormatting,
  )
 import ZimToMarkdown.Domain (
     ConversionDirection (..),
+    FormattingMode (..),
     MarkdownDocument (..),
     RelativePath (..),
     ZimPage (..),
@@ -183,6 +185,26 @@ tests =
         "zim superscript"
         (zimToMarkdown "x^{2}")
         "x<sup>2</sup>"
+    , TestCase
+        "zim underline collapses to bold"
+        (zimToMarkdownWithFormatting BoldFormatting "__under__")
+        "**under**"
+    , TestCase
+        "zim underline collapses to italic"
+        (zimToMarkdownWithFormatting ItalicFormatting "__under__")
+        "*under*"
+    , TestCase
+        "zim subscript collapses to bold"
+        (zimToMarkdownWithFormatting BoldFormatting "H_{2}O")
+        "H**2**O"
+    , TestCase
+        "zim superscript collapses to italic"
+        (zimToMarkdownWithFormatting ItalicFormatting "x^{2}")
+        "x*2*"
+    , TestCase
+        "zim anchor stays html when formatting collapses"
+        (zimToMarkdownWithFormatting BoldFormatting "{{id: intro}}")
+        "<a id=\"intro\"></a>"
     , TestCase
         "zim bullet list"
         (zimToMarkdown "* item")
@@ -492,6 +514,28 @@ tests =
         "missing image mode value is rejected"
         (optionErrorText (parseOptions ["page.txt", "--images"]))
         "Missing value for option: --images"
+    , TestCase
+        "formatting defaults to html"
+        (formattingResult ["page.txt"])
+        "HtmlFormatting"
+    , TestCase
+        "formatting bold parses"
+        (formattingResult ["--formatting", "bold", "page.txt"])
+        "BoldFormatting"
+    , TestCase
+        "formatting italic parses"
+        (formattingResult ["--formatting", "italic", "page.txt"])
+        "ItalicFormatting"
+    , TestCase
+        "invalid formatting is rejected"
+        ( optionErrorText
+            (parseOptions ["--formatting", "bogus", "page.txt"])
+        )
+        "Invalid formatting mode: bogus. Use html, bold or italic."
+    , TestCase
+        "missing formatting value is rejected"
+        (optionErrorText (parseOptions ["page.txt", "--formatting"]))
+        "Missing value for option: --formatting"
     ]
 
 zimToMarkdown :: Text -> Text
@@ -502,12 +546,31 @@ zimToMarkdownWithAssets assets input =
     unMarkdownDocument
         (convertZimPageWithAssets linkContext assets (ZimPage input))
 
+zimToMarkdownWithFormatting :: FormattingMode -> Text -> Text
+zimToMarkdownWithFormatting formatting input =
+    unMarkdownDocument
+        ( convertZimPageWithAssetsAndFormatting
+            formatting
+            linkContext
+            Map.empty
+            (ZimPage input)
+        )
+
 imageModeResult :: [String] -> Text
 imageModeResult arguments =
     case parseOptions arguments of
         Left optionsError -> renderOptionsError optionsError
         Right (Convert request) ->
             Text.pack (show (conversionImageMode request))
+        Right ShowHelp -> "help"
+        Right ShowVersion -> "version"
+
+formattingResult :: [String] -> Text
+formattingResult arguments =
+    case parseOptions arguments of
+        Left optionsError -> renderOptionsError optionsError
+        Right (Convert request) ->
+            Text.pack (show (conversionFormatting request))
         Right ShowHelp -> "help"
         Right ShowVersion -> "version"
 
