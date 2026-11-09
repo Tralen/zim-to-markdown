@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file. This project fo
 
 ## [0.4.0.1] - 2026-11-09
 
+### Added
+
+- Added a Debian package for Linux x86_64 to the release workflow. The package installs the executable, the README, the changelog, the license and a man page, and depends on `libc6 (>= 2.35)` and `libgmp10`.
+
 ### Fixed
 
 - Preserved the heading hierarchy when a page has more than three distinct Zim levels. The Markdown cap moved from `###` to `######`, so level four and level five headings no longer collapse into level three.

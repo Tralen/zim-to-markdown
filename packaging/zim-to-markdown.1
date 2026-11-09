@@ -1,0 +1,42 @@
+.TH ZIM-TO-MARKDOWN 1 "2026-11-09" "zim-to-markdown @VERSION@" "User Commands"
+.SH NAME
+zim-to-markdown \- convert between Zim wiki pages and Markdown
+.SH SYNOPSIS
+.B zim-to-markdown
+[\fB\-\-direction\fR \fIDIRECTION\fR]
+[\fB\-\-output\fR \fIPATH\fR]
+[\fB\-\-images\fR \fIMODE\fR]
+[\fB\-\-formatting\fR \fIMODE\fR]
+\fIINPUT\fR
+.SH DESCRIPTION
+.B zim-to-markdown
+converts a single Zim page or a whole notebook to Markdown, and converts
+Markdown back to Zim. A notebook is a directory or a path to its
+\fInotebook.zim\fR file.
+.SH OPTIONS
+.TP
+.BR \-d ", " \-\-direction " " \fIDIRECTION\fR
+\fBzim-to-markdown\fR (default) or \fBmarkdown-to-zim\fR.
+.TP
+.BR \-o ", " \-\-output " " \fIPATH\fR
+Output file for a single page; output directory for a notebook.
+.TP
+.BR \-\-images " " \fIMODE\fR
+External images: \fBcopy\fR (default), \fBsymlink\fR or \fBrelative\fR;
+notebook conversion only.
+.TP
+.BR \-\-formatting " " \fIMODE\fR
+Inline formatting without a Markdown counterpart: \fBhtml\fR (default),
+\fBbold\fR, \fBitalic\fR or \fBstrike\fR; Zim to Markdown only.
+.TP
+.BR \-h ", " \-\-help
+Show usage information.
+.TP
+.BR \-V ", " \-\-version
+Show the application version.
+.SH EXIT STATUS
+The process exits with 0 on success and with a non-zero status when the
+arguments are invalid or when an input or output operation fails.
+.SH SEE ALSO
+The project documentation at
+\fIhttps://github.com/Tralen/zim-to-markdown\fR.

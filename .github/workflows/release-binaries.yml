@@ -75,17 +75,40 @@ jobs:
           fi
           echo "ASSET_PATH=dist/${ASSET}" >> "$GITHUB_ENV"
 
+      - name: Package Debian archive
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          TAG_NAME: ${{ inputs.release_tag }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          sh packaging/build-deb.sh "$VERSION" dist/release/zim-to-markdown "dist/zim-to-markdown_${VERSION}_amd64.deb"
+          echo "DEB_PATH=dist/zim-to-markdown_${VERSION}_amd64.deb" >> "$GITHUB_ENV"
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: zim-to-markdown-${{ runner.os }}-${{ runner.arch }}
           path: ${{ env.ASSET_PATH }}
 
+      - name: Upload Debian artifact
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zim-to-markdown-${{ runner.os }}-${{ runner.arch }}-deb
+          path: ${{ env.DEB_PATH }}
+
       - name: Attest build provenance
         if: inputs.publish
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: ${{ env.ASSET_PATH }}
+
+      - name: Attest Debian provenance
+        if: inputs.publish && runner.os == 'Linux'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ env.DEB_PATH }}
 
       - name: Attach to GitHub release
         if: inputs.publish
@@ -97,6 +120,15 @@ jobs:
         run: |
           gh release view "$TAG_NAME" >/dev/null 2>&1 || gh release create "$TAG_NAME" --title "zim-to-markdown ${TAG_NAME#v}" --generate-notes
           gh release upload "$TAG_NAME" "$ASSET_PATH" --clobber
+
+      - name: Attach Debian archive to GitHub release
+        if: inputs.publish && runner.os == 'Linux'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ inputs.release_tag }}
+        run: gh release upload "$TAG_NAME" "$DEB_PATH" --clobber
 
   checksums:
     name: Publish checksums

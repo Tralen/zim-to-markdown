@@ -105,7 +105,7 @@ Run the `Release binaries` workflow manually with the release tag and `publish` 
 gh workflow run release-binaries.yml -f release_tag=v<version> -f publish=true
 ```
 
-The workflow builds Linux x86_64, macOS ARM64, and Windows x86_64 archives, attaches them to the release, adds provenance attestations, and publishes a `SHA256SUMS` file. A run with `publish=false` only builds and tests the artifacts.
+The workflow builds Linux x86_64, macOS ARM64, and Windows x86_64 archives, plus a Debian package for Linux x86_64, attaches them to the release, adds provenance attestations, and publishes a `SHA256SUMS` file. A run with `publish=false` only builds and tests the artifacts. The Debian package is built by `packaging/build-deb.sh` and depends on `libc6 (>= 2.35)` and `libgmp10`.
 
 ## CI
 
