@@ -28,7 +28,7 @@ The notebook root is the directory that contains `notebook.zim`. When that file 
 - `[[:page]]` targets the notebook root.
 - `[[+page]]` targets a child of the current page.
 
-The resolved target is rendered relative to the current page and with the output extension, so the generated Markdown links remain valid. The notebook conversion calls `convertZimPageWithAssets`, which receives the final target for each external image; the executable chooses between copying the image to `_assets`, creating an absolute symlink there, or linking to the original with `..`, and the library only substitutes the target. The label renderer passed to `renderZimLink` makes inline markup inside link labels recursive.
+The resolved target is rendered relative to the current page and with the output extension, so the generated Markdown links remain valid. The notebook conversion calls `convertZimPageWithAssetsAndFormatting`, which receives the final target for each external image and the formatting mode. The executable chooses between copying the image to `_assets`, creating an absolute symlink there, or linking to the original with `..`, and the library only substitutes the target. The label renderer passed to `renderZimLink` makes inline markup inside link labels recursive.
 
 ## Notebook items
 

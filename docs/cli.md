@@ -3,7 +3,7 @@
 ## Usage
 
 ```text
-zim-to-markdown [--direction DIRECTION] [--output PATH] INPUT
+zim-to-markdown [--direction DIRECTION] [--output PATH] [--images MODE] [--formatting MODE] INPUT
 zim-to-markdown --help
 zim-to-markdown --version
 ```
@@ -46,14 +46,35 @@ When `INPUT` is a directory, it is treated as a notebook. A file named `notebook
 
 `symlink` and `relative` require a notebook input. `markdown-to-zim` accepts only `copy`. The generated `_assets/` directory is reserved for external images; assets inside the notebook keep their own paths.
 
-`--formatting` controls Zim underline, subscript and superscript, which have no Markdown syntax. `html` keeps `<u>`, `<sub>` and `<sup>`; `bold`, `italic` and `strike` collapse them into `**`, `*` and `~~` emphasis. Anchors such as `{{id: name}}` stay HTML in every mode, and `markdown-to-zim` accepts only `html`.
-
 `symlink` needs symbolic-link support: on Windows it requires Developer Mode or Administrator privileges, and backup or archive tools may dereference or skip the links. These modes read the paths written in the notebook, so only convert notebooks from a trusted source; the output can copy files from outside the notebook and the symlinks reveal absolute paths.
+
+`--formatting` controls Zim underline, subscript and superscript, which have no Markdown syntax. `html` keeps `<u>`, `<sub>` and `<sup>`; `bold`, `italic` and `strike` collapse them into `**`, `*` and `~~` emphasis. Anchors such as `{{id: name}}` stay HTML in every mode, and `markdown-to-zim` accepts only `html`.
 
 ```sh
 zim-to-markdown my-notebook --output my-notebook-markdown
 zim-to-markdown my-notebook/notebook.zim --output my-notebook-markdown
 zim-to-markdown --direction markdown-to-zim notes --output notes-zim
+```
+
+## Walkthrough
+
+The following example converts a notebook called `my-notebook` into Markdown under `my-notebook-markdown`.
+
+1. Run the conversion:
+
+   ```sh
+   zim-to-markdown my-notebook --output my-notebook-markdown
+   ```
+
+2. The program reads `my-notebook`, finds every page and asset, and creates `my-notebook-markdown`. A page such as `my-notebook/notes/page.txt` becomes `my-notebook-markdown/notes/page.md`; other files are copied unchanged.
+3. Internal links are rewritten to point at the converted pages, and images referenced outside the notebook are copied to `_assets/` by default.
+4. The command prints nothing on success and exits with status `0`. On failure it prints a message to standard error and exits with a non-zero status.
+5. The result is the `my-notebook-markdown` directory. Delete it to undo the conversion; the input notebook is not modified.
+
+For a single page, omit `--output` to print the Markdown to standard output:
+
+```sh
+zim-to-markdown page.txt
 ```
 
 ## Exit status

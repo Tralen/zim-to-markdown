@@ -9,11 +9,11 @@ The conversion is line based for blocks and scanner based for inline markup. Rul
 | `=` heading syntax, levels 1 to 5 | Normalized Markdown heading, from `#` to `###` |
 | `**bold**` | `**bold**` |
 | `//italic//` | `*italic*` |
-| `__underline__` | `<u>underline</u>`, or emphasis with `--formatting` |
+| `__underline__` | `<u>underline</u>`, or `**`/`*`/`~~` with `--formatting` |
 | `''verbatim''` | `` `verbatim` `` |
 | `~~strike~~` | `~~strike~~` |
-| `_{subscript}` | `<sub>subscript</sub>`, or emphasis with `--formatting` |
-| `^{superscript}` | `<sup>superscript</sup>`, or emphasis with `--formatting` |
+| `_{subscript}` | `<sub>subscript</sub>`, or `**`/`*`/`~~` with `--formatting` |
+| `^{superscript}` | `<sup>superscript</sup>`, or `**`/`*`/`~~` with `--formatting` |
 | `<b>bold</b>` or `<strong>bold</strong>` | `**bold**` |
 | `<i>italic</i>` or `<em>italic</em>` | `*italic*` |
 | `{{id: name}}` | `<a id="name"></a>` |

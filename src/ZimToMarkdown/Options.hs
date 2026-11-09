@@ -202,7 +202,7 @@ helpText =
         [ "zim-to-markdown - converts between Zim wiki and Markdown."
         , ""
         , "Usage:"
-        , "  zim-to-markdown [--direction DIRECTION] [--output PATH] INPUT"
+        , "  zim-to-markdown [--direction DIRECTION] [--output PATH] [--images MODE] [--formatting MODE] INPUT"
         , "  zim-to-markdown --help"
         , "  zim-to-markdown --version"
         , ""

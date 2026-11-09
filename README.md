@@ -60,10 +60,12 @@ Prebuilt Linux, macOS, and Windows binaries are attached to [GitHub releases](ht
 
 ## Requirements
 
-Building from source or installing with `cabal install` requires:
+Building from source or installing with `cabal install` requires a Haskell toolchain. The project is tested with:
 
-- GHC 9.14.1
+- GHC 9.6.7 and 9.14.1
 - cabal-install 3.18.1.0
+
+The release binaries use GHC 9.14.1.
 
 On Debian and Ubuntu, install the `libgmp-dev` package before building, because GHC links against GMP.
 
@@ -72,9 +74,11 @@ The prebuilt binaries attached to the GitHub releases do not need a Haskell tool
 ## Build and test
 
 ```sh
-cabal build
-cabal test
+cabal build all -fdevelopment
+cabal test all -fdevelopment
 ```
+
+The `development` flag turns warnings into errors, as CI does. Without it, `cabal build` and `cabal test` still work but do not enforce the warning gate.
 
 ## Development
 
@@ -112,6 +116,14 @@ Convert a single page to a Markdown file:
 ```sh
 zim-to-markdown page.txt --output page.md
 ```
+
+Collapse inline formatting that Markdown cannot express into emphasis:
+
+```sh
+zim-to-markdown page.txt --formatting bold
+```
+
+Use `italic` or `strike` for the other emphasis styles, or keep the default `html` for `<u>`, `<sub>` and `<sup>`.
 
 Convert a whole Zim notebook, preserving its folders:
 

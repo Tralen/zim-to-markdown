@@ -10,6 +10,11 @@ All notable changes to this project are documented in this file. This project fo
 
 - Added `--formatting html|bold|italic|strike` for inline Zim formatting that Markdown cannot express. `html` is the default and keeps `<u>`, `<sub>` and `<sup>`; `bold`, `italic` and `strike` collapse underline, subscript and superscript into the chosen emphasis. Anchors stay HTML in every mode, and `markdown-to-zim` rejects the option.
 
+### Changed
+
+- Documented `--formatting` in the CLI, conversion, domain and architecture guides, and added a notebook walkthrough to the CLI guide.
+- Corrected the release guide to build with `-fdevelopment`, push to the canonical `operador` bare, sign tags through `tag.gpgSign`, and read the Hackage token from `~/.cabal/config` instead of the environment.
+
 ## [0.3.1.0] - 2026-10-29
 
 ### Added

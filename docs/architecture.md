@@ -22,7 +22,7 @@ The project is split into a pure library and a thin executable. All effects live
 ## Data flow
 
 ```text
-argv -> parseOptions -> ConversionRequest
+argv -> parseOptions -> ConversionRequest (direction, image mode, formatting mode)
                               |
                               v
 discoverFiles -> classifyNotebookItems -> pages and assets
@@ -31,7 +31,7 @@ discoverFiles -> classifyNotebookItems -> pages and assets
 file bytes -> decodeUtf8' -> ZimPage or MarkdownDocument
                               |
                               v
-convertZimPage or convertMarkdownDocument
+convertZimPageWithAssetsAndFormatting or convertMarkdownDocument
                               |
                               v
 encodeUtf8 -> stdout or output file
@@ -40,6 +40,10 @@ encodeUtf8 -> stdout or output file
 ## Purity boundary
 
 Parsing, conversion, link resolution, path calculation, table normalization, and notebook classification are pure functions. Reading, writing, directory discovery, asset copying, and exiting are confined to `Main`, which turns failures into `Text` messages and a non-zero exit code instead of throwing exceptions.
+
+## Inline formatting
+
+The formatting mode from `ConversionRequest` reaches the pure converter. `HtmlFormatting` keeps `<u>`, `<sub>` and `<sup>`; `BoldFormatting`, `ItalicFormatting` and `StrikeFormatting` collapse underline, subscript and superscript into emphasis. Anchors are not formatting and stay HTML in every mode.
 
 ## Notebook behavior
 
