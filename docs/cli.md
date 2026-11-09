@@ -17,7 +17,7 @@ The examples use the installed `zim-to-markdown` executable. From a repository c
 | `-d DIRECTION`, `--direction DIRECTION` | `zim-to-markdown` (default) or `markdown-to-zim`. |
 | `-o PATH`, `--output PATH` | Output file for a single page; output directory for a notebook. |
 | `--images MODE` | External images: `copy` (default), `symlink` or `relative`; notebook conversion only. |
-| `--formatting MODE` | Inline formatting without a Markdown counterpart: `html` (default), `bold` or `italic`; Zim to Markdown only. |
+| `--formatting MODE` | Inline formatting without a Markdown counterpart: `html` (default), `bold`, `italic` or `strike`; Zim to Markdown only. |
 | `-h`, `--help` | Show usage information. |
 | `-V`, `--version` | Show the application version. |
 
@@ -46,7 +46,7 @@ When `INPUT` is a directory, it is treated as a notebook. A file named `notebook
 
 `symlink` and `relative` require a notebook input. `markdown-to-zim` accepts only `copy`. The generated `_assets/` directory is reserved for external images; assets inside the notebook keep their own paths.
 
-`--formatting` controls Zim underline, subscript and superscript, which have no Markdown syntax. `html` keeps `<u>`, `<sub>` and `<sup>`; `bold` and `italic` collapse them into `**` and `*` emphasis. Anchors such as `{{id: name}}` stay HTML in every mode, and `markdown-to-zim` accepts only `html`.
+`--formatting` controls Zim underline, subscript and superscript, which have no Markdown syntax. `html` keeps `<u>`, `<sub>` and `<sup>`; `bold`, `italic` and `strike` collapse them into `**`, `*` and `~~` emphasis. Anchors such as `{{id: name}}` stay HTML in every mode, and `markdown-to-zim` accepts only `html`.
 
 `symlink` needs symbolic-link support: on Windows it requires Developer Mode or Administrator privileges, and backup or archive tools may dereference or skip the links. These modes read the paths written in the notebook, so only convert notebooks from a trusted source; the output can copy files from outside the notebook and the symlinks reveal absolute paths.
 

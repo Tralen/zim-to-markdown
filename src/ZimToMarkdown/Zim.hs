@@ -358,6 +358,7 @@ convertInline formatting context assets = go
             HtmlFormatting -> "<" <> tag <> ">" <> go inner <> "</" <> tag <> ">"
             BoldFormatting -> "**" <> go inner <> "**"
             ItalicFormatting -> "*" <> go inner <> "*"
+            StrikeFormatting -> "~~" <> go inner <> "~~"
 
 renderAnchor :: Text -> Text
 renderAnchor inner =

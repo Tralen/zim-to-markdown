@@ -23,6 +23,7 @@ data FormattingMode
     = HtmlFormatting
     | BoldFormatting
     | ItalicFormatting
+    | StrikeFormatting
     deriving (Eq, Show)
 
 -- | A page read from a Zim wiki notebook, still containing Zim markup.

@@ -202,6 +202,14 @@ tests =
         (zimToMarkdownWithFormatting ItalicFormatting "x^{2}")
         "x*2*"
     , TestCase
+        "zim underline collapses to strike"
+        (zimToMarkdownWithFormatting StrikeFormatting "__under__")
+        "~~under~~"
+    , TestCase
+        "zim subscript collapses to strike"
+        (zimToMarkdownWithFormatting StrikeFormatting "H_{2}O")
+        "H~~2~~O"
+    , TestCase
         "zim anchor stays html when formatting collapses"
         (zimToMarkdownWithFormatting BoldFormatting "{{id: intro}}")
         "<a id=\"intro\"></a>"
@@ -527,11 +535,15 @@ tests =
         (formattingResult ["--formatting", "italic", "page.txt"])
         "ItalicFormatting"
     , TestCase
+        "formatting strike parses"
+        (formattingResult ["--formatting", "strike", "page.txt"])
+        "StrikeFormatting"
+    , TestCase
         "invalid formatting is rejected"
         ( optionErrorText
             (parseOptions ["--formatting", "bogus", "page.txt"])
         )
-        "Invalid formatting mode: bogus. Use html, bold or italic."
+        "Invalid formatting mode: bogus. Use html, bold, italic or strike."
     , TestCase
         "missing formatting value is rejected"
         (optionErrorText (parseOptions ["page.txt", "--formatting"]))

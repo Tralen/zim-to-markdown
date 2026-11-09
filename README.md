@@ -22,7 +22,7 @@ PVP, single-sourced from the `zim-to-markdown.cabal` file.
 - Accepts the notebook directory or its `notebook.zim` configuration file as input.
 - Strips the leading Zim metadata header and normalizes heading levels to `#`, `##`, and `###`.
 - Copies or links external images with `--images copy|symlink|relative`, so images and attachments keep working.
-- Collapses inline formatting without a Markdown counterpart into bold or italic with `--formatting html|bold|italic`.
+- Collapses inline formatting without a Markdown counterpart into bold, italic or strikethrough with `--formatting html|bold|italic|strike`.
 - Resolves internal Zim links across the notebook.
 - Converts Markdown back to Zim, including notebook structure.
 - Supports headings, emphasis, lists, task lists, links, images, anchors, tables, blockquotes, horizontal rules, and code blocks.

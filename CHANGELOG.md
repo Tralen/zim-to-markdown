@@ -8,7 +8,7 @@ All notable changes to this project are documented in this file. This project fo
 
 ### Added
 
-- Added `--formatting html|bold|italic` for inline Zim formatting that Markdown cannot express. `html` is the default and keeps `<u>`, `<sub>` and `<sup>`; `bold` and `italic` collapse underline, subscript and superscript into the chosen emphasis. Anchors stay HTML in every mode, and `markdown-to-zim` rejects the option.
+- Added `--formatting html|bold|italic|strike` for inline Zim formatting that Markdown cannot express. `html` is the default and keeps `<u>`, `<sub>` and `<sup>`; `bold`, `italic` and `strike` collapse underline, subscript and superscript into the chosen emphasis. Anchors stay HTML in every mode, and `markdown-to-zim` rejects the option.
 
 ## [0.3.1.0] - 2026-10-29
 

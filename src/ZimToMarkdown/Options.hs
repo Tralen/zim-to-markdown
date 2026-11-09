@@ -171,6 +171,7 @@ parseFormatting value =
         "html" -> Just HtmlFormatting
         "bold" -> Just BoldFormatting
         "italic" -> Just ItalicFormatting
+        "strike" -> Just StrikeFormatting
         _ -> Nothing
 
 -- | Renders an option parsing failure as a user facing message.
@@ -192,7 +193,7 @@ renderOptionsError optionsError =
         InvalidFormattingMode formatting ->
             "Invalid formatting mode: "
                 <> formatting
-                <> ". Use html, bold or italic."
+                <> ". Use html, bold, italic or strike."
 
 -- | Command line usage description.
 helpText :: Text
@@ -210,7 +211,7 @@ helpText =
         , "  -o, --output PATH          Output file for a page; output directory for a notebook."
         , "      --images MODE          External images: copy (default), symlink or relative."
         , "      --formatting MODE      Inline formatting without a Markdown counterpart:"
-        , "                             html (default), bold or italic."
+        , "                             html (default), bold, italic or strike."
         , "  -h, --help                 Show this help."
         , "  -V, --version              Show the application version."
         , ""

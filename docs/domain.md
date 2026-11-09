@@ -6,7 +6,7 @@ A `ConversionDirection` is either `ZimToMarkdown` or `MarkdownToZim`. The constr
 
 ## Formatting modes
 
-A `FormattingMode` decides how inline Zim formatting without a Markdown counterpart is rendered. `HtmlFormatting` keeps `<u>`, `<sub>` and `<sup>`; `BoldFormatting` and `ItalicFormatting` collapse underline, subscript and superscript into the chosen emphasis. The mode only affects the Zim to Markdown direction, and anchors are never collapsed.
+A `FormattingMode` decides how inline Zim formatting without a Markdown counterpart is rendered. `HtmlFormatting` keeps `<u>`, `<sub>` and `<sup>`; `BoldFormatting`, `ItalicFormatting` and `StrikeFormatting` collapse underline, subscript and superscript into the chosen emphasis. The mode only affects the Zim to Markdown direction, and anchors are never collapsed.
 
 ## Documents
 
